@@ -338,6 +338,26 @@ textarea {
   font-size: 0.85rem;
 }
 
+.btn--large {
+  padding: 0.9rem 1.8rem;
+  font-size: 1.1rem;
+  text-decoration: none;
+  display: inline-block;
+  margin: 1rem 0;
+}
+
+.welcome-page {
+  display: flex;
+  justify-content: center;
+  padding-top: 2rem;
+}
+
+.welcome-card {
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+}
+
 .field-list {
   list-style: none;
   padding: 0;
