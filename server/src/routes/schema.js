@@ -5,7 +5,9 @@ import { FIXED_QUESTIONS } from '../surveySchema.js';
 export const schemaRouter = Router();
 
 schemaRouter.get('/', (req, res) => {
-  const customRows = db.prepare('SELECT * FROM custom_fields ORDER BY sort_order, id').all();
+  const customRows = db
+    .prepare('SELECT * FROM custom_fields WHERE user_id = ? ORDER BY sort_order, id')
+    .all(req.session.userId);
   const customFields = customRows.map((row) => ({
     key: `custom:${row.key}`,
     label: row.label,

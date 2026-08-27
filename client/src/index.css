@@ -59,6 +59,57 @@ body {
   color: #fff;
 }
 
+.topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.9rem;
+  color: #f3e9d8;
+}
+
+.btn--link {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: #fff;
+  padding: 0.3rem 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.auth-loading {
+  display: flex;
+  justify-content: center;
+  padding: 3rem;
+}
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+}
+
+.auth-form {
+  width: 100%;
+  max-width: 360px;
+}
+
+.auth-form h2 {
+  margin: 0 0 0.2rem;
+  text-align: center;
+}
+
+.auth-form > p.muted {
+  text-align: center;
+  margin-top: 0;
+}
+
+.auth-form .btn {
+  width: 100%;
+}
+
 .content {
   flex: 1;
   padding: 2rem;
