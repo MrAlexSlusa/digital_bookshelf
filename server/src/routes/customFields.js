@@ -16,7 +16,9 @@ function serialize(row) {
 }
 
 customFieldsRouter.get('/', (req, res) => {
-  const rows = db.prepare('SELECT * FROM custom_fields ORDER BY sort_order, id').all();
+  const rows = db
+    .prepare('SELECT * FROM custom_fields WHERE user_id = ? ORDER BY sort_order, id')
+    .all(req.user.id);
   res.json(rows.map(serialize));
 });
 
@@ -29,14 +31,17 @@ customFieldsRouter.post('/', (req, res) => {
   const key = slugify(body.label);
   if (!key) return res.status(400).json({ error: 'Label must contain letters or numbers' });
 
-  const maxOrder = db.prepare('SELECT MAX(sort_order) AS m FROM custom_fields').get();
+  const maxOrder = db
+    .prepare('SELECT MAX(sort_order) AS m FROM custom_fields WHERE user_id = ?')
+    .get(req.user.id);
   try {
     const info = db
       .prepare(
-        `INSERT INTO custom_fields (key, label, type, options, sort_order)
-         VALUES (@key, @label, @type, @options, @sort_order)`
+        `INSERT INTO custom_fields (user_id, key, label, type, options, sort_order)
+         VALUES (@user_id, @key, @label, @type, @options, @sort_order)`
       )
       .run({
+        user_id: req.user.id,
         key,
         label: body.label.trim(),
         type,
@@ -54,13 +59,16 @@ customFieldsRouter.post('/', (req, res) => {
 });
 
 customFieldsRouter.put('/:id', (req, res) => {
-  const existing = db.prepare('SELECT * FROM custom_fields WHERE id = ?').get(req.params.id);
+  const existing = db
+    .prepare('SELECT * FROM custom_fields WHERE id = ? AND user_id = ?')
+    .get(req.params.id, req.user.id);
   if (!existing) return res.status(404).json({ error: 'Field not found' });
   const body = req.body || {};
   const label = body.label !== undefined ? body.label.trim() : existing.label;
   if (!label) return res.status(400).json({ error: 'Label is required' });
-  db.prepare('UPDATE custom_fields SET label=@label, type=@type, options=@options WHERE id=@id').run({
+  db.prepare('UPDATE custom_fields SET label=@label, type=@type, options=@options WHERE id=@id AND user_id=@user_id').run({
     id: req.params.id,
+    user_id: req.user.id,
     label,
     type: body.type ?? existing.type,
     options: body.options !== undefined ? JSON.stringify(body.options) : existing.options,
@@ -70,9 +78,14 @@ customFieldsRouter.put('/:id', (req, res) => {
 });
 
 customFieldsRouter.delete('/:id', (req, res) => {
-  const existing = db.prepare('SELECT * FROM custom_fields WHERE id = ?').get(req.params.id);
+  const existing = db
+    .prepare('SELECT * FROM custom_fields WHERE id = ? AND user_id = ?')
+    .get(req.params.id, req.user.id);
   if (!existing) return res.status(404).json({ error: 'Field not found' });
-  db.prepare('DELETE FROM survey_responses WHERE question_key = ?').run(`custom:${existing.key}`);
+  db.prepare(
+    `DELETE FROM survey_responses
+     WHERE question_key = ? AND book_id IN (SELECT id FROM books WHERE user_id = ?)`
+  ).run(`custom:${existing.key}`, req.user.id);
   db.prepare('DELETE FROM custom_fields WHERE id = ?').run(req.params.id);
   res.status(204).end();
 });

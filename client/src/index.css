@@ -59,6 +59,20 @@ body {
   color: #fff;
 }
 
+.topbar__user {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  color: #f3e9d8;
+  font-size: 0.9rem;
+}
+
+.topbar__user .btn {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
 .content {
   flex: 1;
   padding: 2rem;
@@ -304,4 +318,48 @@ textarea {
 .add-field-form {
   border-top: 1px solid var(--border);
   padding-top: 1rem;
+}
+
+.auth-page {
+  display: flex;
+  justify-content: center;
+  padding-top: 2rem;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-card h2 {
+  margin-top: 0;
+}
+
+.auth-card .btn {
+  margin-top: 0.5rem;
+}
+
+.auth-switch {
+  margin-bottom: 0;
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.auth-switch a {
+  color: var(--accent);
+}
+
+.welcome-card {
+  text-align: center;
+  align-items: center;
+}
+
+.btn--large {
+  padding: 0.9rem 1.8rem;
+  font-size: 1.1rem;
+  text-decoration: none;
+  display: inline-block;
+  margin: 1rem 0;
 }

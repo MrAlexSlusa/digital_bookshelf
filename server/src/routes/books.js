@@ -25,13 +25,15 @@ function getResponsesForBook(bookId) {
 
 booksRouter.get('/', (req, res) => {
   const books = db
-    .prepare('SELECT * FROM books ORDER BY date_added DESC')
-    .all();
+    .prepare('SELECT * FROM books WHERE user_id = ? ORDER BY date_added DESC')
+    .all(req.user.id);
   res.json(books);
 });
 
 booksRouter.get('/:id', (req, res) => {
-  const book = db.prepare('SELECT * FROM books WHERE id = ?').get(req.params.id);
+  const book = db
+    .prepare('SELECT * FROM books WHERE id = ? AND user_id = ?')
+    .get(req.params.id, req.user.id);
   if (!book) return res.status(404).json({ error: 'Book not found' });
   res.json({ ...book, responses: getResponsesForBook(book.id) });
 });
@@ -43,10 +45,11 @@ booksRouter.post('/', (req, res) => {
   }
   const info = db
     .prepare(
-      `INSERT INTO books (title, author, cover_url, status, date_started, date_finished, grade, impressions)
-       VALUES (@title, @author, @cover_url, @status, @date_started, @date_finished, @grade, @impressions)`
+      `INSERT INTO books (user_id, title, author, cover_url, status, date_started, date_finished, grade, impressions)
+       VALUES (@user_id, @title, @author, @cover_url, @status, @date_started, @date_finished, @grade, @impressions)`
     )
     .run({
+      user_id: req.user.id,
       title: body.title.trim(),
       author: body.author || null,
       cover_url: body.cover_url || null,
@@ -61,7 +64,9 @@ booksRouter.post('/', (req, res) => {
 });
 
 booksRouter.put('/:id', (req, res) => {
-  const existing = db.prepare('SELECT * FROM books WHERE id = ?').get(req.params.id);
+  const existing = db
+    .prepare('SELECT * FROM books WHERE id = ? AND user_id = ?')
+    .get(req.params.id, req.user.id);
   if (!existing) return res.status(404).json({ error: 'Book not found' });
   const body = req.body || {};
   const updated = { ...existing };
@@ -74,20 +79,24 @@ booksRouter.put('/:id', (req, res) => {
   db.prepare(
     `UPDATE books SET title=@title, author=@author, cover_url=@cover_url, status=@status,
      date_started=@date_started, date_finished=@date_finished, grade=@grade, impressions=@impressions
-     WHERE id=@id`
-  ).run({ ...updated, id: req.params.id });
+     WHERE id=@id AND user_id=@user_id`
+  ).run({ ...updated, id: req.params.id, user_id: req.user.id });
   const book = db.prepare('SELECT * FROM books WHERE id = ?').get(req.params.id);
   res.json({ ...book, responses: getResponsesForBook(book.id) });
 });
 
 booksRouter.delete('/:id', (req, res) => {
-  const info = db.prepare('DELETE FROM books WHERE id = ?').run(req.params.id);
+  const info = db
+    .prepare('DELETE FROM books WHERE id = ? AND user_id = ?')
+    .run(req.params.id, req.user.id);
   if (info.changes === 0) return res.status(404).json({ error: 'Book not found' });
   res.status(204).end();
 });
 
 booksRouter.put('/:id/responses', (req, res) => {
-  const book = db.prepare('SELECT id FROM books WHERE id = ?').get(req.params.id);
+  const book = db
+    .prepare('SELECT id FROM books WHERE id = ? AND user_id = ?')
+    .get(req.params.id, req.user.id);
   if (!book) return res.status(404).json({ error: 'Book not found' });
   const responses = req.body || {};
   const upsert = db.prepare(

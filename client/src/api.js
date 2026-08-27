@@ -1,6 +1,7 @@
 async function request(path, options = {}) {
   const res = await fetch(`/api${path}`, {
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     ...options,
   });
   if (!res.ok) {
@@ -12,6 +13,11 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  signup: (data) => request('/auth/signup', { method: 'POST', body: JSON.stringify(data) }),
+  login: (data) => request('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+  logout: () => request('/auth/logout', { method: 'POST' }),
+  me: () => request('/auth/me'),
+
   getSchema: () => request('/schema'),
 
   getBooks: () => request('/books'),
