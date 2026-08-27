@@ -30,41 +30,30 @@ export async function initDb() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
 
-    CREATE TABLE IF NOT EXISTS books (
+    -- Superseded by the "items" table below (one shelf, four categories,
+    -- instead of a books-only schema with a fixed survey).
+    DROP TABLE IF EXISTS survey_responses;
+    DROP TABLE IF EXISTS custom_fields;
+    DROP TABLE IF EXISTS books;
+
+    CREATE TABLE IF NOT EXISTS items (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      category TEXT NOT NULL CHECK (category IN ('books', 'movies', 'articles', 'quotes')),
       title TEXT NOT NULL,
-      author TEXT,
-      cover_url TEXT,
-      status TEXT NOT NULL DEFAULT 'read',
-      date_added TIMESTAMPTZ NOT NULL DEFAULT now(),
-      date_started TEXT,
-      date_finished TEXT,
-      grade REAL,
-      impressions TEXT
+      sub TEXT,
+      year TEXT,
+      hue INTEGER NOT NULL DEFAULT 200,
+      rating INTEGER CHECK (rating BETWEEN 1 AND 5),
+      verdict TEXT,
+      impression TEXT,
+      notes JSONB NOT NULL DEFAULT '[]',
+      keeps JSONB NOT NULL DEFAULT '[]',
+      facts JSONB NOT NULL DEFAULT '[]',
+      tags JSONB NOT NULL DEFAULT '[]',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
 
-    CREATE TABLE IF NOT EXISTS custom_fields (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      key TEXT NOT NULL,
-      label TEXT NOT NULL,
-      type TEXT NOT NULL,
-      options TEXT,
-      sort_order INTEGER NOT NULL DEFAULT 0,
-      UNIQUE(user_id, key)
-    );
-
-    CREATE TABLE IF NOT EXISTS survey_responses (
-      id SERIAL PRIMARY KEY,
-      book_id INTEGER NOT NULL REFERENCES books(id) ON DELETE CASCADE,
-      question_key TEXT NOT NULL,
-      value TEXT,
-      UNIQUE(book_id, question_key)
-    );
-
-    CREATE INDEX IF NOT EXISTS books_user_id_idx ON books(user_id);
-    CREATE INDEX IF NOT EXISTS custom_fields_user_id_idx ON custom_fields(user_id);
-    CREATE INDEX IF NOT EXISTS survey_responses_book_id_idx ON survey_responses(book_id);
+    CREATE INDEX IF NOT EXISTS items_user_category_idx ON items(user_id, category, created_at);
   `);
 }

@@ -1,16 +1,17 @@
 # Digital Bookshelf
 
-A personal app for tracking books you read: title/author/status, a grade,
-free-form impressions, and a short survey (fixed questions plus any custom
-ones you define in Settings). Each signed-in account has its own private
-bookshelf.
+A personal "kept media" shelf — books, movies, articles and quotes, each with
+your impressions, a star rating, dated notes, kept lines/scenes, and a small
+facts-and-tags grid. Browse it as a 3D carousel; open an item to fly it to
+camera and read back everything you wrote about it. Each signed-in account
+has its own private shelf.
 
 ## Stack
 
 - **Client**: React + Vite (`client/`), deployed to **GitHub Pages**
 - **Server**: Express + Postgres (`server/`), deployed to **Render**
-- **Database**: **Neon** (serverless Postgres) — stores accounts, books, custom
-  fields, and login sessions
+- **Database**: **Neon** (serverless Postgres) — stores accounts, shelf items
+  (with their notes/kept lines/facts/tags as JSONB), and login sessions
 - **Auth**: email/password accounts, hashed with bcrypt, backed by an
   httpOnly session cookie stored server-side in Postgres
 
@@ -94,5 +95,18 @@ default, so no extra setup is needed there.
 - `POST /api/auth/logout` — end the session
 - `GET /api/auth/me` — current signed-in user, or `{ user: null }`
 
-All book/custom-field/schema endpoints require a signed-in session and only
-ever return that account's own data.
+## Shelf items
+
+- `GET /api/items` — every item in the signed-in account's shelf (all
+  categories; the client groups them client-side)
+- `POST /api/items` — create an item: `{ category, title, sub, year, hue,
+  rating, verdict, impression, notes, keeps, facts, tags }` (`category` is
+  one of `books`, `movies`, `articles`, `quotes`; everything but `category`
+  and `title` is optional)
+- `PUT /api/items/:id` — partial update, same shape
+- `DELETE /api/items/:id`
+
+All `/api/items` endpoints require a signed-in session and only ever return
+that account's own data. `notes`, `keeps`, `facts`, and `tags` are freeform
+JSON arrays (dated notes, kept quotes/scenes, `[label, value]` fact pairs,
+and plain tag strings) — the client owns their shape.

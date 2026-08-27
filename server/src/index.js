@@ -7,9 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { authRouter } from './routes/auth.js';
-import { booksRouter } from './routes/books.js';
-import { customFieldsRouter } from './routes/customFields.js';
-import { schemaRouter } from './routes/schema.js';
+import { itemsRouter } from './routes/items.js';
 import { initDb, pool } from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -57,9 +55,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/auth', authRouter);
-app.use('/api/books', booksRouter);
-app.use('/api/custom-fields', customFieldsRouter);
-app.use('/api/schema', schemaRouter);
+app.use('/api/items', itemsRouter);
 
 const clientDist = path.join(__dirname, '..', '..', 'client', 'dist');
 if (fs.existsSync(clientDist)) {
