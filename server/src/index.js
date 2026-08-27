@@ -50,6 +50,12 @@ if (fs.existsSync(clientDist)) {
   });
 }
 
+app.use((err, req, res, next) => {
+  console.error(err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: 'Something went wrong. Please try again.' });
+});
+
 app.listen(PORT, () => {
   console.log(`Bookshelf server listening on http://localhost:${PORT}`);
 });

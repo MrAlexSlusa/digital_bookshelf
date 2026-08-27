@@ -1,6 +1,7 @@
 import { Router } from 'express';
-import { db } from '../db.js';
+import { asyncHandler } from '../asyncHandler.js';
 import { hashPassword, verifyPassword } from '../auth.js';
+import { db } from '../db.js';
 
 export const authRouter = Router();
 
@@ -12,52 +13,67 @@ function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase();
 }
 
-authRouter.post('/register', async (req, res) => {
-  const { password } = req.body || {};
-  const email = normalizeEmail(req.body?.email);
+authRouter.post(
+  '/register',
+  asyncHandler(async (req, res) => {
+    const { password } = req.body || {};
+    const email = normalizeEmail(req.body?.email);
 
-  if (!email || !email.includes('@')) {
-    return res.status(400).json({ error: 'A valid email is required' });
-  }
-  if (!password || password.length < 6) {
-    return res.status(400).json({ error: 'Password must be at least 6 characters' });
-  }
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'A valid email is required' });
+    }
+    if (!password || password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
 
-  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
-  if (existing) {
-    return res.status(409).json({ error: 'An account with this email already exists' });
-  }
+    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    if (existing) {
+      return res.status(409).json({ error: 'An account with this email already exists' });
+    }
 
-  const password_hash = await hashPassword(password);
-  const info = db
-    .prepare('INSERT INTO users (email, password_hash) VALUES (@email, @password_hash)')
-    .run({ email, password_hash });
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(info.lastInsertRowid);
+    const password_hash = await hashPassword(password);
 
-  req.session.userId = user.id;
-  res.status(201).json(sanitizeUser(user));
-});
+    let info;
+    try {
+      info = db
+        .prepare('INSERT INTO users (email, password_hash) VALUES (@email, @password_hash)')
+        .run({ email, password_hash });
+    } catch (err) {
+      if (String(err.message).includes('UNIQUE')) {
+        return res.status(409).json({ error: 'An account with this email already exists' });
+      }
+      throw err;
+    }
 
-authRouter.post('/login', async (req, res) => {
-  const { password } = req.body || {};
-  const email = normalizeEmail(req.body?.email);
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(info.lastInsertRowid);
+    req.session.userId = user.id;
+    res.status(201).json(sanitizeUser(user));
+  })
+);
 
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password are required' });
-  }
+authRouter.post(
+  '/login',
+  asyncHandler(async (req, res) => {
+    const { password } = req.body || {};
+    const email = normalizeEmail(req.body?.email);
 
-  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
-  if (!user || !(await verifyPassword(password, user.password_hash))) {
-    return res.status(401).json({ error: 'Invalid email or password' });
-  }
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
 
-  req.session.userId = user.id;
-  res.json(sanitizeUser(user));
-});
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+    if (!user || !(await verifyPassword(password, user.password_hash))) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    req.session.userId = user.id;
+    res.json(sanitizeUser(user));
+  })
+);
 
 authRouter.post('/logout', (req, res) => {
   req.session.destroy(() => {
-    res.clearCookie('connect.sid');
+    res.clearCookie('bookshelf.sid');
     res.status(204).end();
   });
 });
