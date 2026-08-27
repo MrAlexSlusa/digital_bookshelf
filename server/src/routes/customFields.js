@@ -1,7 +1,9 @@
 import { Router } from 'express';
-import { db } from '../db.js';
+import { pool } from '../db.js';
+import { requireAuth } from '../middleware/auth.js';
 
 export const customFieldsRouter = Router();
+customFieldsRouter.use(requireAuth);
 
 function slugify(label) {
   return label
@@ -15,64 +17,108 @@ function serialize(row) {
   return { ...row, options: row.options ? JSON.parse(row.options) : null };
 }
 
-customFieldsRouter.get('/', (req, res) => {
-  const rows = db.prepare('SELECT * FROM custom_fields ORDER BY sort_order, id').all();
-  res.json(rows.map(serialize));
-});
-
-customFieldsRouter.post('/', (req, res) => {
-  const body = req.body || {};
-  if (!body.label || !body.label.trim()) {
-    return res.status(400).json({ error: 'Label is required' });
-  }
-  const type = body.type || 'text';
-  const key = slugify(body.label);
-  if (!key) return res.status(400).json({ error: 'Label must contain letters or numbers' });
-
-  const maxOrder = db.prepare('SELECT MAX(sort_order) AS m FROM custom_fields').get();
+customFieldsRouter.get('/', async (req, res, next) => {
   try {
-    const info = db
-      .prepare(
-        `INSERT INTO custom_fields (key, label, type, options, sort_order)
-         VALUES (@key, @label, @type, @options, @sort_order)`
-      )
-      .run({
-        key,
-        label: body.label.trim(),
-        type,
-        options: body.options ? JSON.stringify(body.options) : null,
-        sort_order: (maxOrder.m ?? -1) + 1,
-      });
-    const row = db.prepare('SELECT * FROM custom_fields WHERE id = ?').get(info.lastInsertRowid);
-    res.status(201).json(serialize(row));
+    const { rows } = await pool.query(
+      'SELECT * FROM custom_fields WHERE user_id = $1 ORDER BY sort_order, id',
+      [req.session.userId]
+    );
+    res.json(rows.map(serialize));
   } catch (err) {
-    if (String(err.message).includes('UNIQUE')) {
-      return res.status(409).json({ error: 'A field with a similar name already exists' });
-    }
-    throw err;
+    next(err);
   }
 });
 
-customFieldsRouter.put('/:id', (req, res) => {
-  const existing = db.prepare('SELECT * FROM custom_fields WHERE id = ?').get(req.params.id);
-  if (!existing) return res.status(404).json({ error: 'Field not found' });
-  const body = req.body || {};
-  const label = body.label !== undefined ? body.label.trim() : existing.label;
-  if (!label) return res.status(400).json({ error: 'Label is required' });
-  db.prepare('UPDATE custom_fields SET label=@label, type=@type, options=@options WHERE id=@id').run({
-    id: req.params.id,
-    label,
-    type: body.type ?? existing.type,
-    options: body.options !== undefined ? JSON.stringify(body.options) : existing.options,
-  });
-  const row = db.prepare('SELECT * FROM custom_fields WHERE id = ?').get(req.params.id);
-  res.json(serialize(row));
+customFieldsRouter.post('/', async (req, res, next) => {
+  try {
+    const body = req.body || {};
+    if (!body.label || !body.label.trim()) {
+      return res.status(400).json({ error: 'Label is required' });
+    }
+    const type = body.type || 'text';
+    const key = slugify(body.label);
+    if (!key) return res.status(400).json({ error: 'Label must contain letters or numbers' });
+
+    const maxOrder = await pool.query(
+      'SELECT MAX(sort_order) AS m FROM custom_fields WHERE user_id = $1',
+      [req.session.userId]
+    );
+
+    try {
+      const { rows } = await pool.query(
+        `INSERT INTO custom_fields (user_id, key, label, type, options, sort_order)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING *`,
+        [
+          req.session.userId,
+          key,
+          body.label.trim(),
+          type,
+          body.options ? JSON.stringify(body.options) : null,
+          (maxOrder.rows[0].m ?? -1) + 1,
+        ]
+      );
+      res.status(201).json(serialize(rows[0]));
+    } catch (err) {
+      if (err.code === '23505') {
+        return res.status(409).json({ error: 'A field with a similar name already exists' });
+      }
+      throw err;
+    }
+  } catch (err) {
+    next(err);
+  }
 });
 
-customFieldsRouter.delete('/:id', (req, res) => {
-  const existing = db.prepare('SELECT * FROM custom_fields WHERE id = ?').get(req.params.id);
-  if (!existing) return res.status(404).json({ error: 'Field not found' });
-  db.prepare('DELETE FROM survey_responses WHERE question_key = ?').run(`custom:${existing.key}`);
-  db.prepare('DELETE FROM custom_fields WHERE id = ?').run(req.params.id);
-  res.status(204).end();
+customFieldsRouter.put('/:id', async (req, res, next) => {
+  try {
+    const existing = await pool.query(
+      'SELECT * FROM custom_fields WHERE id = $1 AND user_id = $2',
+      [req.params.id, req.session.userId]
+    );
+    if (existing.rowCount === 0) return res.status(404).json({ error: 'Field not found' });
+    const row = existing.rows[0];
+    const body = req.body || {};
+    const label = body.label !== undefined ? body.label.trim() : row.label;
+    if (!label) return res.status(400).json({ error: 'Label is required' });
+
+    const { rows } = await pool.query(
+      'UPDATE custom_fields SET label=$1, type=$2, options=$3 WHERE id=$4 AND user_id=$5 RETURNING *',
+      [
+        label,
+        body.type ?? row.type,
+        body.options !== undefined ? JSON.stringify(body.options) : row.options,
+        req.params.id,
+        req.session.userId,
+      ]
+    );
+    res.json(serialize(rows[0]));
+  } catch (err) {
+    next(err);
+  }
+});
+
+customFieldsRouter.delete('/:id', async (req, res, next) => {
+  try {
+    const existing = await pool.query(
+      'SELECT * FROM custom_fields WHERE id = $1 AND user_id = $2',
+      [req.params.id, req.session.userId]
+    );
+    if (existing.rowCount === 0) return res.status(404).json({ error: 'Field not found' });
+    const row = existing.rows[0];
+
+    await pool.query(
+      `DELETE FROM survey_responses
+       WHERE question_key = $1
+       AND book_id IN (SELECT id FROM books WHERE user_id = $2)`,
+      [`custom:${row.key}`, req.session.userId]
+    );
+    await pool.query('DELETE FROM custom_fields WHERE id = $1 AND user_id = $2', [
+      req.params.id,
+      req.session.userId,
+    ]);
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
 });

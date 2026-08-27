@@ -1,6 +1,9 @@
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
+
 async function request(path, options = {}) {
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     ...options,
   });
   if (!res.ok) {
@@ -12,6 +15,13 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  register: (email, password) =>
+    request('/auth/register', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  login: (email, password) =>
+    request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  logout: () => request('/auth/logout', { method: 'POST' }),
+  me: () => request('/auth/me'),
+
   getSchema: () => request('/schema'),
 
   getBooks: () => request('/books'),
