@@ -5,6 +5,7 @@ import BookshelfPage from './pages/BookshelfPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
+import WelcomePage from './pages/WelcomePage.jsx';
 
 export default function App() {
   const { user, loading, logout } = useAuth();
@@ -43,6 +44,7 @@ export default function App() {
       <main className="content">
         <Routes>
           <Route path="/" element={<BookshelfPage />} />
+          <Route path="/welcome" element={<WelcomePage />} />
           <Route path="/books/new" element={<BookFormPage />} />
           <Route path="/books/:id" element={<BookFormPage />} />
           <Route path="/settings" element={<SettingsPage />} />
