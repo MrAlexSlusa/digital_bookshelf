@@ -1,9 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { CATEGORY_META, CATEGORY_ORDER, subLabelFor } from './constants.js';
 import { accentColors } from './styles.js';
-import { fetchBookCover, fetchMoviePoster } from './coverLookup.js';
+import { fetchBookCover, fetchMoviePoster, fetchWikipediaImage } from './coverLookup.js';
 
-const COVER_LOOKUP_CATEGORIES = ['books', 'movies'];
+// Books/movies search by title; articles/quotes have no cover art of their
+// own, so they search by who/what they're attributed to (the sub field).
+const COVER_META = {
+  books: { label: 'Cover image', source: 'Open Library', noun: 'cover', queryField: 'title' },
+  movies: { label: 'Poster image', source: 'the iTunes Store', noun: 'poster', queryField: 'title' },
+  articles: { label: 'Publication image', source: 'Wikipedia', noun: 'image', queryField: 'sub' },
+  quotes: { label: 'Portrait', source: 'Wikipedia', noun: 'portrait', queryField: 'sub' },
+};
 
 function factsToRows(facts) {
   return (facts || []).map(([k, v]) => ({ k, v }));
@@ -31,10 +38,12 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
 
   const { accent } = accentColors(hue, dark);
 
+  const coverMeta = COVER_META[category];
+
   useEffect(() => {
-    if (!COVER_LOOKUP_CATEGORIES.includes(category) || coverTouchedRef.current) return undefined;
-    const trimmedTitle = title.trim();
-    if (!trimmedTitle) {
+    if (!coverMeta || coverTouchedRef.current) return undefined;
+    const query = (coverMeta.queryField === 'title' ? title : sub).trim();
+    if (!query) {
       setCoverStatus('idle');
       return undefined;
     }
@@ -47,10 +56,10 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
     const timer = setTimeout(async () => {
       setCoverStatus('loading');
       try {
-        const found =
-          category === 'movies'
-            ? await fetchMoviePoster(trimmedTitle, controller.signal)
-            : await fetchBookCover(trimmedTitle, sub, controller.signal);
+        let found;
+        if (category === 'movies') found = await fetchMoviePoster(query, controller.signal);
+        else if (category === 'books') found = await fetchBookCover(query, sub, controller.signal);
+        else found = await fetchWikipediaImage(query, controller.signal);
         if (coverLookupRef.current.token !== token) return;
         setCoverUrl(found || '');
         setCoverStatus(found ? 'found' : 'none');
@@ -61,7 +70,7 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [title, sub, category]);
+  }, [title, sub, category, coverMeta]);
 
   function updateFactRow(idx, field, value) {
     setFactRows((rows) => rows.map((r, i) => (i === idx ? { ...r, [field]: value } : r)));
@@ -141,9 +150,9 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
             <input id="item-sub" type="text" value={sub} onChange={(e) => setSub(e.target.value)} />
           </div>
 
-          {COVER_LOOKUP_CATEGORIES.includes(category) && (
+          {coverMeta && (
             <div className="form-field">
-              <label htmlFor="item-cover">{category === 'movies' ? 'Poster image' : 'Cover image'}</label>
+              <label htmlFor="item-cover">{coverMeta.label}</label>
               <div className="cover-lookup-row">
                 {coverUrl && <img className="cover-lookup-preview" src={coverUrl} alt="" />}
                 <div className="cover-lookup-controls">
@@ -156,7 +165,7 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
                       setCoverUrl(e.target.value);
                       setCoverStatus('idle');
                     }}
-                    placeholder="Auto-fills from the title"
+                    placeholder={`Auto-fills from the ${coverMeta.queryField === 'title' ? 'title' : subLabelFor(category).toLowerCase()}`}
                   />
                   {coverTouchedRef.current && (
                     <button
@@ -168,20 +177,18 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
                         setCoverStatus('idle');
                       }}
                     >
-                      Auto-detect from title
+                      Auto-detect
                     </button>
                   )}
                   {!coverTouchedRef.current && coverStatus === 'loading' && (
-                    <span className="cover-lookup-status">Looking up {category === 'movies' ? 'poster' : 'cover'}…</span>
+                    <span className="cover-lookup-status">Looking up {coverMeta.noun}…</span>
                   )}
                   {!coverTouchedRef.current && coverStatus === 'found' && (
-                    <span className="cover-lookup-status">
-                      Matched from {category === 'movies' ? 'the iTunes Store' : 'Open Library'}
-                    </span>
+                    <span className="cover-lookup-status">Matched from {coverMeta.source}</span>
                   )}
                   {!coverTouchedRef.current && coverStatus === 'none' && (
                     <span className="cover-lookup-status">
-                      No {category === 'movies' ? 'poster' : 'cover'} found — using the plain design instead
+                      No {coverMeta.noun} found — using the plain design instead
                     </span>
                   )}
                 </div>

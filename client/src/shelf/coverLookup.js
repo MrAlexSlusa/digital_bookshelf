@@ -33,3 +33,31 @@ export async function fetchMoviePoster(title, signal) {
   // in the URL for a much larger poster image.
   return artwork ? artwork.replace(/\d+x\d+bb\.(jpg|png)$/, '600x600bb.$1') : null;
 }
+
+// Articles and quotes have no cover art of their own, so look up an image
+// for who/what they're attributed to (a publication's logo, a person's
+// portrait) via Wikipedia, which is CORS-open and needs no API key.
+export async function fetchWikipediaImage(name, signal) {
+  const trimmedName = (name || '').trim();
+  if (!trimmedName) return null;
+
+  const params = new URLSearchParams({
+    action: 'query',
+    generator: 'search',
+    gsrsearch: trimmedName,
+    gsrlimit: '1',
+    prop: 'pageimages',
+    piprop: 'thumbnail',
+    pithumbsize: '500',
+    format: 'json',
+    origin: '*',
+  });
+
+  const res = await fetch(`https://en.wikipedia.org/w/api.php?${params.toString()}`, { signal });
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  const pages = data?.query?.pages;
+  const page = pages ? Object.values(pages)[0] : null;
+  return page?.thumbnail?.source || null;
+}
