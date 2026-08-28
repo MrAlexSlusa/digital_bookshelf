@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CATEGORY_META, CATEGORY_ORDER, subLabelFor } from './constants.js';
 import { accentColors } from './styles.js';
+import { fetchBookCover } from './coverLookup.js';
 
 function factsToRows(facts) {
   return (facts || []).map(([k, v]) => ({ k, v }));
@@ -21,7 +22,41 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const [coverUrl, setCoverUrl] = useState(initial?.coverUrl || '');
+  const [coverStatus, setCoverStatus] = useState('idle'); // idle | loading | found | none
+  const coverLookupRef = useRef({ token: 0, controller: null });
+  const coverTouchedRef = useRef(Boolean(initial?.coverUrl));
+
   const { accent } = accentColors(hue, dark);
+
+  useEffect(() => {
+    if (category !== 'books' || coverTouchedRef.current) return undefined;
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
+      setCoverStatus('idle');
+      return undefined;
+    }
+
+    const token = ++coverLookupRef.current.token;
+    coverLookupRef.current.controller?.abort();
+    const controller = new AbortController();
+    coverLookupRef.current.controller = controller;
+
+    const timer = setTimeout(async () => {
+      setCoverStatus('loading');
+      try {
+        const found = await fetchBookCover(trimmedTitle, sub, controller.signal);
+        if (coverLookupRef.current.token !== token) return;
+        setCoverUrl(found || '');
+        setCoverStatus(found ? 'found' : 'none');
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+        if (coverLookupRef.current.token === token) setCoverStatus('none');
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [title, sub, category]);
 
   function updateFactRow(idx, field, value) {
     setFactRows((rows) => rows.map((r, i) => (i === idx ? { ...r, [field]: value } : r)));
@@ -52,6 +87,7 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
         verdict: verdict.trim(),
         impression: impression.trim(),
         hue,
+        coverUrl: coverUrl.trim(),
         tags: tagsText
           .split(',')
           .map((t) => t.trim())
@@ -99,6 +135,50 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
             <label htmlFor="item-sub">{subLabelFor(category)}</label>
             <input id="item-sub" type="text" value={sub} onChange={(e) => setSub(e.target.value)} />
           </div>
+
+          {category === 'books' && (
+            <div className="form-field">
+              <label htmlFor="item-cover">Cover image</label>
+              <div className="cover-lookup-row">
+                {coverUrl && <img className="cover-lookup-preview" src={coverUrl} alt="" />}
+                <div className="cover-lookup-controls">
+                  <input
+                    id="item-cover"
+                    type="text"
+                    value={coverUrl}
+                    onChange={(e) => {
+                      coverTouchedRef.current = true;
+                      setCoverUrl(e.target.value);
+                      setCoverStatus('idle');
+                    }}
+                    placeholder="Auto-fills from the title"
+                  />
+                  {coverTouchedRef.current && (
+                    <button
+                      type="button"
+                      className="link-btn"
+                      onClick={() => {
+                        coverTouchedRef.current = false;
+                        setCoverUrl('');
+                        setCoverStatus('idle');
+                      }}
+                    >
+                      Auto-detect from title
+                    </button>
+                  )}
+                  {!coverTouchedRef.current && coverStatus === 'loading' && (
+                    <span className="cover-lookup-status">Looking up cover…</span>
+                  )}
+                  {!coverTouchedRef.current && coverStatus === 'found' && (
+                    <span className="cover-lookup-status">Matched from Open Library</span>
+                  )}
+                  {!coverTouchedRef.current && coverStatus === 'none' && (
+                    <span className="cover-lookup-status">No cover found — using the plain design instead</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="form-grid">
             <div className="form-field">

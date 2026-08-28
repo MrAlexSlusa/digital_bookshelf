@@ -6,6 +6,14 @@ export function coverGradient(hue, dark) {
   return `linear-gradient(158deg, oklch(${dark ? 0.34 : 0.36} 0.085 ${hue}) 0%, oklch(0.22 0.055 ${hue}) 55%, oklch(0.15 0.035 ${hue}) 100%)`;
 }
 
+// When a real cover image was found for the title, layer it under a dark
+// scrim (so the title/sub text painted on top stays legible) instead of the
+// plain generated gradient.
+export function coverBackground(hue, dark, coverUrl) {
+  if (!coverUrl) return coverGradient(hue, dark);
+  return `linear-gradient(180deg, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.55) 100%), url("${coverUrl}") center/cover no-repeat, ${coverGradient(hue, dark)}`;
+}
+
 export function accentColors(hue, dark, glow = 1) {
   return {
     accent: `oklch(${dark ? 0.78 : 0.56} 0.15 ${hue})`,
@@ -37,7 +45,7 @@ export function gapFor(shapeKind, spread) {
 }
 
 // One shelf card's full set of derived transforms/styles.
-export function shelfCardStyles({ shape, hue, dark, glow, motion, d, nudge, gap, leaving }) {
+export function shelfCardStyles({ shape, hue, dark, glow, motion, d, nudge, gap, leaving, coverUrl }) {
   const ad = Math.abs(d);
   const vis = ad <= 3;
   const active = d === 0;
@@ -78,7 +86,7 @@ export function shelfCardStyles({ shape, hue, dark, glow, motion, d, nudge, gap,
     height: shape.h,
     borderRadius: shape.kind === 'spine' ? '2px 4px 4px 2px' : '3px',
     overflow: 'hidden',
-    background: coverGradient(hue, dark),
+    background: coverBackground(hue, dark, coverUrl),
     boxShadow:
       `0 30px 60px -18px rgba(0,0,0,${dark ? 0.85 : 0.4}), 0 0 0 1px rgba(255,255,255,.06) inset` +
       (active ? `, 0 0 90px -12px oklch(0.62 0.19 ${hue} / ${(dark ? 0.75 : 0.5) * glow})` : ''),
@@ -166,14 +174,14 @@ export function heroHingeStyle(canOpen) {
   };
 }
 
-export function heroCoverStyle({ shape, hue, dark, glow }) {
+export function heroCoverStyle({ shape, hue, dark, glow, coverUrl }) {
   return {
     position: 'absolute',
     inset: 0,
     borderRadius: shape.kind === 'spine' ? '3px 6px 6px 3px' : '3px',
     overflow: 'hidden',
     backfaceVisibility: 'hidden',
-    background: coverGradient(hue, dark),
+    background: coverBackground(hue, dark, coverUrl),
     boxShadow: `0 60px 90px -30px rgba(0,0,0,${dark ? 0.9 : 0.4}), 0 0 0 1px rgba(255,255,255,.07) inset, 0 0 160px -20px oklch(0.62 0.20 ${hue} / ${(dark ? 0.9 : 0.5) * glow})`,
   };
 }

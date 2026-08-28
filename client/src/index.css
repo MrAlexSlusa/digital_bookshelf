@@ -398,6 +398,14 @@ button { font-family: inherit; }
 .repeat-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: flex-start; }
 .repeat-row input, .repeat-row textarea { flex: 1; }
 
+.cover-lookup-row { display: flex; gap: 12px; align-items: flex-start; }
+.cover-lookup-preview {
+  width: 46px; height: 68px; flex: none; object-fit: cover;
+  border-radius: 3px; border: 1px solid var(--line); background: var(--paper);
+}
+.cover-lookup-controls { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.cover-lookup-status { font: 500 10.5px/1 'IBM Plex Mono', monospace; letter-spacing: 0.05em; color: var(--dim); }
+
 .icon-remove {
   background: none; border: 1px solid var(--line); border-radius: 999px; width: 26px; height: 26px; flex: none;
   color: var(--dim); cursor: pointer; font: 400 13px/1 'IBM Plex Mono', monospace; transition: all 0.2s ease;
