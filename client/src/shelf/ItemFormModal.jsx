@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { CATEGORY_META, CATEGORY_ORDER, subLabelFor } from './constants.js';
 import { accentColors } from './styles.js';
-import { fetchBookCover } from './coverLookup.js';
+import { fetchBookCover, fetchMoviePoster } from './coverLookup.js';
+
+const COVER_LOOKUP_CATEGORIES = ['books', 'movies'];
 
 function factsToRows(facts) {
   return (facts || []).map(([k, v]) => ({ k, v }));
@@ -30,7 +32,7 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
   const { accent } = accentColors(hue, dark);
 
   useEffect(() => {
-    if (category !== 'books' || coverTouchedRef.current) return undefined;
+    if (!COVER_LOOKUP_CATEGORIES.includes(category) || coverTouchedRef.current) return undefined;
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
       setCoverStatus('idle');
@@ -45,7 +47,10 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
     const timer = setTimeout(async () => {
       setCoverStatus('loading');
       try {
-        const found = await fetchBookCover(trimmedTitle, sub, controller.signal);
+        const found =
+          category === 'movies'
+            ? await fetchMoviePoster(trimmedTitle, controller.signal)
+            : await fetchBookCover(trimmedTitle, sub, controller.signal);
         if (coverLookupRef.current.token !== token) return;
         setCoverUrl(found || '');
         setCoverStatus(found ? 'found' : 'none');
@@ -136,9 +141,9 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
             <input id="item-sub" type="text" value={sub} onChange={(e) => setSub(e.target.value)} />
           </div>
 
-          {category === 'books' && (
+          {COVER_LOOKUP_CATEGORIES.includes(category) && (
             <div className="form-field">
-              <label htmlFor="item-cover">Cover image</label>
+              <label htmlFor="item-cover">{category === 'movies' ? 'Poster image' : 'Cover image'}</label>
               <div className="cover-lookup-row">
                 {coverUrl && <img className="cover-lookup-preview" src={coverUrl} alt="" />}
                 <div className="cover-lookup-controls">
@@ -167,13 +172,17 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
                     </button>
                   )}
                   {!coverTouchedRef.current && coverStatus === 'loading' && (
-                    <span className="cover-lookup-status">Looking up cover…</span>
+                    <span className="cover-lookup-status">Looking up {category === 'movies' ? 'poster' : 'cover'}…</span>
                   )}
                   {!coverTouchedRef.current && coverStatus === 'found' && (
-                    <span className="cover-lookup-status">Matched from Open Library</span>
+                    <span className="cover-lookup-status">
+                      Matched from {category === 'movies' ? 'the iTunes Store' : 'Open Library'}
+                    </span>
                   )}
                   {!coverTouchedRef.current && coverStatus === 'none' && (
-                    <span className="cover-lookup-status">No cover found — using the plain design instead</span>
+                    <span className="cover-lookup-status">
+                      No {category === 'movies' ? 'poster' : 'cover'} found — using the plain design instead
+                    </span>
                   )}
                 </div>
               </div>
