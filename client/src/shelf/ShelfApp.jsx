@@ -8,6 +8,7 @@ import ItemFormModal from './ItemFormModal.jsx';
 import { useShelf } from './useShelf.js';
 import { CATEGORY_META, CATEGORY_ORDER, shapeFor } from './constants.js';
 import { accentColors, washColors, washStyle } from './styles.js';
+import { useCoverPalette } from './useCoverPalette.js';
 
 const MOTION = 1;
 const GLOW = 1;
@@ -24,9 +25,11 @@ export default function ShelfApp({ onSignOut }) {
   const categoryMeta = CATEGORY_META[shelf.categoryKey];
   const shape = shapeFor(shelf.categoryKey);
   const item = shelf.activeItem;
-  const hue = item?.hue ?? 200;
+  const palette = useCoverPalette(item?.coverUrl, item?.hue ?? 200);
+  const hue = palette[0];
+  const hue2 = palette[1] ?? hue;
   const { accent, accentGlow, accentSoft } = accentColors(hue, dark, GLOW);
-  const { washA, washB } = washColors(hue, dark, GLOW);
+  const { washA, washB } = washColors(hue, hue2, dark, GLOW);
 
   const counts = CATEGORY_ORDER.map((key) => (shelf.grouped[key] || []).length);
   const n = shelf.categoryItems.length;

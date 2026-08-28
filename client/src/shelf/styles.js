@@ -26,10 +26,14 @@ export function accentColors(hue, dark, glow = 1) {
   };
 }
 
-export function washColors(hue, dark, glow = 1) {
+// hueA/hueB are sampled from the active cover's palette (its two most
+// prominent colours) so the page wash blends the actual artwork instead of
+// one flat colour behind it. When a cover only yields one usable hue, pass
+// the same value for both and the wash simply reads as a single colour.
+export function washColors(hueA, hueB, dark, glow = 1) {
   return {
-    washA: dark ? `oklch(0.55 0.14 ${hue} / ${0.20 * glow})` : `oklch(0.80 0.08 ${hue} / ${0.42 * glow})`,
-    washB: dark ? `oklch(0.50 0.12 ${hue} / ${0.14 * glow})` : `oklch(0.85 0.05 ${hue} / ${0.30 * glow})`,
+    washA: dark ? `oklch(0.55 0.14 ${hueA} / ${0.20 * glow})` : `oklch(0.80 0.08 ${hueA} / ${0.42 * glow})`,
+    washB: dark ? `oklch(0.50 0.12 ${hueB} / ${0.14 * glow})` : `oklch(0.85 0.05 ${hueB} / ${0.30 * glow})`,
   };
 }
 

@@ -9,11 +9,13 @@ import {
   heroStageStyle,
   heroTiltStyle,
 } from './styles.js';
+import { useCoverPalette } from './useCoverPalette.js';
 
 export default function HeroStage({ item, shape, dark, glow, motion, px, py, accent, accentGlow, firstKeepLabel, sections, sec, onDotClick }) {
   const canOpen = shape.kind !== 'quote';
   const { w: hw, h: hh } = heroSizeFor(shape.kind);
   const firstKeep = item.keeps?.[0]?.text || item.title;
+  const hue = useCoverPalette(item.coverUrl, item.hue ?? 200)[0];
 
   return (
     <div className="hero-col">
@@ -37,7 +39,7 @@ export default function HeroStage({ item, shape, dark, glow, motion, px, py, acc
                 )}
 
                 <div style={heroHingeStyle(canOpen)}>
-                  <div style={heroCoverStyle({ shape, hue: item.hue, dark, glow, coverUrl: item.coverUrl })}>
+                  <div style={heroCoverStyle({ shape, hue, dark, glow, coverUrl: item.coverUrl })}>
                     <div className="hero-cover-texture" />
                     {shape.kind === 'spine' && <div className="hero-cover-spine" />}
                     {shape.kind === 'film' && (
@@ -57,13 +59,13 @@ export default function HeroStage({ item, shape, dark, glow, motion, px, py, acc
                       </div>
                     </div>
                   </div>
-                  {canOpen && <div style={heroCoverBackStyle(item.hue)} />}
+                  {canOpen && <div style={heroCoverBackStyle(hue)} />}
                 </div>
               </div>
             </div>
           </div>
         </div>
-        <div style={heroReflectionStyle(hw, hh, item.hue, dark)} />
+        <div style={heroReflectionStyle(hw, hh, hue, dark)} />
       </div>
 
       <div className="dot-nav">
