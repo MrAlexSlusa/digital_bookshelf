@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { CATEGORY_META, CATEGORY_ORDER, subLabelFor } from './constants.js';
 import { accentColors } from './styles.js';
-import { fetchBookCover, fetchMoviePoster, fetchWikipediaImage } from './coverLookup.js';
+import { extractDominantHue, fetchBookCover, fetchMoviePoster, fetchWikipediaImage } from './coverLookup.js';
 
 // Books/movies search by title; articles/quotes have no cover art of their
 // own, so they search by who/what they're attributed to (the sub field).
 const COVER_META = {
   books: { label: 'Cover image', source: 'Open Library', noun: 'cover', queryField: 'title' },
-  movies: { label: 'Poster image', source: 'the iTunes Store', noun: 'poster', queryField: 'title' },
+  movies: { label: 'Poster image', source: 'Wikipedia', noun: 'poster', queryField: 'title' },
   articles: { label: 'Publication image', source: 'Wikipedia', noun: 'image', queryField: 'sub' },
   quotes: { label: 'Portrait', source: 'Wikipedia', noun: 'portrait', queryField: 'sub' },
 };
@@ -33,12 +33,22 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
 
   const [coverUrl, setCoverUrl] = useState(initial?.coverUrl || '');
   const [coverStatus, setCoverStatus] = useState('idle'); // idle | loading | found | none
+  const [matchingColor, setMatchingColor] = useState(false);
   const coverLookupRef = useRef({ token: 0, controller: null });
   const coverTouchedRef = useRef(Boolean(initial?.coverUrl));
+  const hueTouchedRef = useRef(false);
 
   const { accent } = accentColors(hue, dark);
 
   const coverMeta = COVER_META[category];
+
+  async function matchColorToCover(url, signal) {
+    setMatchingColor(true);
+    const matchedHue = await extractDominantHue(url, signal);
+    if (signal?.aborted) return;
+    setMatchingColor(false);
+    if (matchedHue != null && !hueTouchedRef.current) setHue(matchedHue);
+  }
 
   useEffect(() => {
     if (!coverMeta || coverTouchedRef.current) return undefined;
@@ -57,12 +67,13 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
       setCoverStatus('loading');
       try {
         let found;
-        if (category === 'movies') found = await fetchMoviePoster(query, controller.signal);
+        if (category === 'movies') found = await fetchMoviePoster(query, controller.signal, year);
         else if (category === 'books') found = await fetchBookCover(query, sub, controller.signal);
         else found = await fetchWikipediaImage(query, controller.signal);
         if (coverLookupRef.current.token !== token) return;
         setCoverUrl(found || '');
         setCoverStatus(found ? 'found' : 'none');
+        if (found) await matchColorToCover(found, controller.signal);
       } catch (err) {
         if (err.name === 'AbortError') return;
         if (coverLookupRef.current.token === token) setCoverStatus('none');
@@ -70,7 +81,11 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [title, sub, category, coverMeta]);
+  }, [title, sub, year, category, coverMeta]);
+
+  async function handleCoverUrlBlur() {
+    if (coverUrl.trim()) await matchColorToCover(coverUrl.trim());
+  }
 
   function updateFactRow(idx, field, value) {
     setFactRows((rows) => rows.map((r, i) => (i === idx ? { ...r, [field]: value } : r)));
@@ -165,6 +180,7 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
                       setCoverUrl(e.target.value);
                       setCoverStatus('idle');
                     }}
+                    onBlur={handleCoverUrlBlur}
                     placeholder={`Auto-fills from the ${coverMeta.queryField === 'title' ? 'title' : subLabelFor(category).toLowerCase()}`}
                   />
                   {coverTouchedRef.current && (
@@ -214,7 +230,9 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
               </div>
             </div>
             <div className="form-field">
-              <label htmlFor="item-hue">Colour</label>
+              <label htmlFor="item-hue">
+                Colour{coverUrl && !hueTouchedRef.current ? (matchingColor ? ' (matching cover…)' : ' (matched to cover)') : ''}
+              </label>
               <div className="hue-row">
                 <input
                   id="item-hue"
@@ -222,7 +240,10 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
                   min="0"
                   max="359"
                   value={hue}
-                  onChange={(e) => setHue(Number(e.target.value))}
+                  onChange={(e) => {
+                    hueTouchedRef.current = true;
+                    setHue(Number(e.target.value));
+                  }}
                 />
                 <span className="hue-swatch" style={{ background: accent }} />
               </div>
