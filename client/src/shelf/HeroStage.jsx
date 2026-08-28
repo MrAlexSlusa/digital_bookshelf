@@ -37,7 +37,7 @@ export default function HeroStage({ item, shape, dark, glow, motion, px, py, acc
                 )}
 
                 <div style={heroHingeStyle(canOpen)}>
-                  <div style={heroCoverStyle({ shape, hue: item.hue, dark, glow })}>
+                  <div style={heroCoverStyle({ shape, hue: item.hue, dark, glow, coverUrl: item.coverUrl })}>
                     <div className="hero-cover-texture" />
                     {shape.kind === 'spine' && <div className="hero-cover-spine" />}
                     {shape.kind === 'film' && (

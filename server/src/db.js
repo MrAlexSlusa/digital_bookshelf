@@ -51,8 +51,11 @@ export async function initDb() {
       keeps JSONB NOT NULL DEFAULT '[]',
       facts JSONB NOT NULL DEFAULT '[]',
       tags JSONB NOT NULL DEFAULT '[]',
+      cover_url TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
+
+    ALTER TABLE items ADD COLUMN IF NOT EXISTS cover_url TEXT;
 
     CREATE INDEX IF NOT EXISTS items_user_category_idx ON items(user_id, category, created_at);
   `);
