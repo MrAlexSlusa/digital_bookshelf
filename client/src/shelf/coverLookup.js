@@ -15,23 +15,15 @@ export async function fetchBookCover(title, author, signal) {
   return coverId ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg` : null;
 }
 
-// Looks up the real poster art via Wikipedia's search + page-summary APIs
-// so a movie's cover can auto-switch to the actual poster once the title
-// is typed. Deliberately not the `fetchWikipediaImage` helper below: movie
-// posters are almost always non-free/fair-use files, and the pageimages
-// API that helper uses excludes those (verified — it returns no thumbnail
-// at all for e.g. the "Inception" article), while the page-summary REST
-// endpoint does include them, since it's just building a preview card.
-//
-// (The iTunes Search API was tried first, including the "unfiltered
-// search + kind===feature-movie" approach — but it doesn't return
-// mainstream titles like "Inception" or "Dune" as results at all, so
-// neither iTunes variant is a reliable source here.)
-export async function fetchMoviePoster(title, signal, year) {
-  const trimmedTitle = (title || '').trim();
-  if (!trimmedTitle) return null;
-
-  const searchTerm = year && String(year).trim() ? `${trimmedTitle} ${String(year).trim()} film` : `${trimmedTitle} film`;
+// Looks up a Wikipedia page's preview image via search + the page-summary
+// REST endpoint: search finds the best-matching page title, then the
+// summary endpoint gives its lead image. Deliberately not the pageimages
+// API (see fetchWikipediaImage below): posters, publication logos, etc.
+// are almost always non-free/fair-use files, and pageimages excludes
+// those (verified — it returns no thumbnail at all for e.g. "Inception"
+// or "Wired"), while the page-summary endpoint does include them, since
+// it's just building a preview card.
+async function fetchWikipediaSummaryImage(searchTerm, signal) {
   const searchParams = new URLSearchParams({
     action: 'query',
     list: 'search',
@@ -52,6 +44,34 @@ export async function fetchMoviePoster(title, signal, year) {
   if (!summaryRes.ok) return null;
   const summaryData = await summaryRes.json();
   return summaryData.originalimage?.source || summaryData.thumbnail?.source || null;
+}
+
+// Looks up the real poster art via Wikipedia so a movie's cover can
+// auto-switch to the actual poster once the title is typed.
+//
+// (The iTunes Search API was tried first, including `media=movie`,
+// `entity=movie`, and an unfiltered search filtered client-side for
+// kind==="feature-movie" — but none of those reliably return mainstream
+// titles like "Inception" or "Dune", so it isn't a reliable source here.)
+export async function fetchMoviePoster(title, signal, year) {
+  const trimmedTitle = (title || '').trim();
+  if (!trimmedTitle) return null;
+
+  const searchTerm = year && String(year).trim() ? `${trimmedTitle} ${String(year).trim()} film` : `${trimmedTitle} film`;
+  return fetchWikipediaSummaryImage(searchTerm, signal);
+}
+
+// Articles and quotes have no cover art of their own, so look up an image
+// for who/what they're attributed to (a publication's logo, a person's
+// portrait) via the same Wikipedia search + page-summary lookup used for
+// movie posters above — publication logos are non-free just as often as
+// posters are (verified against "Wired"), so the summary endpoint is
+// needed here too, not the pageimages API.
+export async function fetchWikipediaImage(name, signal) {
+  const trimmedName = (name || '').trim();
+  if (!trimmedName) return null;
+
+  return fetchWikipediaSummaryImage(trimmedName, signal);
 }
 
 // Samples an image client-side (via canvas) and returns its dominant hue
@@ -132,32 +152,4 @@ function rgbToHue(r, g, b) {
   h *= 60;
   if (h < 0) h += 360;
   return Math.round(h);
-}
-
-// Articles and quotes have no cover art of their own, so look up an image
-// for who/what they're attributed to (a publication's logo, a person's
-// portrait) via Wikipedia, which is CORS-open and needs no API key.
-export async function fetchWikipediaImage(name, signal) {
-  const trimmedName = (name || '').trim();
-  if (!trimmedName) return null;
-
-  const params = new URLSearchParams({
-    action: 'query',
-    generator: 'search',
-    gsrsearch: trimmedName,
-    gsrlimit: '1',
-    prop: 'pageimages',
-    piprop: 'thumbnail',
-    pithumbsize: '500',
-    format: 'json',
-    origin: '*',
-  });
-
-  const res = await fetch(`https://en.wikipedia.org/w/api.php?${params.toString()}`, { signal });
-  if (!res.ok) return null;
-
-  const data = await res.json();
-  const pages = data?.query?.pages;
-  const page = pages ? Object.values(pages)[0] : null;
-  return page?.thumbnail?.source || null;
 }
