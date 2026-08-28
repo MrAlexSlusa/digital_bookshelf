@@ -128,11 +128,16 @@ export default function DetailView({
           <p className="section-label" style={{ color: accent }}>
             {label}
           </p>
-          <h1 className="detail-title">{isQuoteCat ? `“${item.title}”` : item.title}</h1>
-          <p className="detail-byline">
-            {item.sub}
-            {item.year ? `  ·  ${item.year}` : ''}
-          </p>
+          <div className="detail-title-row">
+            {item.coverUrl && <img className="detail-cover-thumb" src={item.coverUrl} alt="" />}
+            <div>
+              <h1 className="detail-title">{isQuoteCat ? `“${item.title}”` : item.title}</h1>
+              <p className="detail-byline">
+                {item.sub}
+                {item.year ? `  ·  ${item.year}` : ''}
+              </p>
+            </div>
+          </div>
 
           {showImpression && (
             <div key="impression" className="section-body">

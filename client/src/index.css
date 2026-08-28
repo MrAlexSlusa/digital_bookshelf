@@ -273,6 +273,11 @@ button { font-family: inherit; }
 .text-link-btn.danger:hover { color: #e0796c; }
 
 .section-label { margin: 0 0 12px; font: 500 10.5px/1 'IBM Plex Mono', monospace; letter-spacing: 0.2em; text-transform: uppercase; }
+.detail-title-row { display: flex; align-items: flex-start; gap: 18px; }
+.detail-cover-thumb {
+  width: 56px; height: 82px; flex: none; object-fit: cover; margin-top: 4px;
+  border-radius: 3px; box-shadow: 0 12px 24px -10px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,.08) inset;
+}
 .detail-title { margin: 0 0 10px; font: 400 clamp(34px, 3.9vw, 56px)/1.02 'Instrument Serif', serif; text-wrap: balance; }
 .detail-byline { margin: 0 0 28px; font: 500 11px/1 'IBM Plex Mono', monospace; letter-spacing: 0.18em; text-transform: uppercase; color: var(--dim); }
 
