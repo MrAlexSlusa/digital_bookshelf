@@ -49,10 +49,12 @@ export default function HeroStage({ item, shape, dark, glow, motion, px, py, acc
                       </>
                     )}
                     <div className="hero-cover-content">
-                      <div>
-                        <div className="hero-cover-rule" />
-                        <h3 className="hero-cover-title">{item.title}</h3>
-                      </div>
+                      {!(shape.kind === 'spine' && item.coverUrl) && (
+                        <div>
+                          <div className="hero-cover-rule" />
+                          <h3 className="hero-cover-title">{item.title}</h3>
+                        </div>
+                      )}
                       <div>
                         <p className="hero-cover-sub">{item.sub}</p>
                         <p className="hero-cover-year">{item.year}</p>
