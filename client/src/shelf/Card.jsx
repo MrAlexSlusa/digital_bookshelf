@@ -1,7 +1,9 @@
 import { shelfCardStyles } from './styles.js';
+import { useCoverPalette } from './useCoverPalette.js';
 
 export default function Card({ item, shape, dark, glow, motion, d, nudge, gap, leaving, onClick }) {
-  const { wrap, card, reflection } = shelfCardStyles({ shape, hue: item.hue, dark, glow, motion, d, nudge, gap, leaving, coverUrl: item.coverUrl });
+  const hue = useCoverPalette(item.coverUrl, item.hue ?? 200)[0];
+  const { wrap, card, reflection } = shelfCardStyles({ shape, hue, dark, glow, motion, d, nudge, gap, leaving, coverUrl: item.coverUrl });
 
   return (
     <div style={wrap} onClick={onClick}>

@@ -74,19 +74,22 @@ export async function fetchWikipediaImage(name, signal) {
   return fetchWikipediaSummaryImage(trimmedName, signal);
 }
 
-// Samples an image client-side (via canvas) and returns its dominant hue
-// (0-359), or null if it can't be read (e.g. no CORS support). Used to make
-// the generated gradient/wash colors actually match a fetched cover/poster
-// instead of staying a random/manually-picked hue.
-export function extractDominantHue(url, signal) {
+// Samples an image client-side (via canvas) and returns up to `maxColors`
+// dominant hues (0-359), ordered by how much of the cover they cover (most
+// prominent first). Returns [] if the image can't be read (e.g. no CORS
+// support) or has no colorful pixels. Bucketing into hue bins (rather than
+// flattening every pixel into one average) means a cover with two or three
+// strong colors — a red title band over a blue field, say — produces a
+// palette that blends all of them instead of one muddy average hue.
+export function extractPalette(url, signal, maxColors = 3) {
   return new Promise((resolve) => {
     if (!url) {
-      resolve(null);
+      resolve([]);
       return;
     }
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    const onAbort = () => resolve(null);
+    const onAbort = () => resolve([]);
     signal?.addEventListener('abort', onAbort);
     img.onload = () => {
       signal?.removeEventListener('abort', onAbort);
@@ -99,10 +102,8 @@ export function extractDominantHue(url, signal) {
         ctx.drawImage(img, 0, 0, size, size);
         const { data } = ctx.getImageData(0, 0, size, size);
 
-        let r = 0;
-        let g = 0;
-        let b = 0;
-        let count = 0;
+        const binCount = 24; // 15deg per bin
+        const weights = new Array(binCount).fill(0);
         for (let i = 0; i < data.length; i += 4) {
           if (data[i + 3] < 128) continue; // skip transparent pixels
           const rr = data[i];
@@ -111,30 +112,50 @@ export function extractDominantHue(url, signal) {
           const max = Math.max(rr, gg, bb);
           const min = Math.min(rr, gg, bb);
           // Skip near-white, near-black and low-saturation pixels so page
-          // margins/borders don't wash the average toward grey.
+          // margins/borders don't wash the palette toward grey.
           if (max > 245 && min > 235) continue;
           if (max < 18) continue;
           if (max - min < 12) continue;
-          r += rr;
-          g += gg;
-          b += bb;
-          count += 1;
+          const hue = rgbToHue(rr, gg, bb);
+          const sat = max === 0 ? 0 : (max - min) / max;
+          const bin = Math.floor(hue / (360 / binCount)) % binCount;
+          weights[bin] += 0.4 + 0.6 * sat; // count vivid pixels more heavily
         }
-        if (!count) {
-          resolve(null);
-          return;
+
+        const order = weights
+          .map((w, bin) => ({ bin, w }))
+          .filter((b) => b.w > 0)
+          .sort((a, b) => b.w - a.w);
+
+        const palette = [];
+        for (const { bin } of order) {
+          const hue = Math.round(bin * (360 / binCount) + 360 / binCount / 2);
+          const tooClose = palette.some((h) => {
+            const diff = Math.abs(h - hue);
+            return Math.min(diff, 360 - diff) < 30;
+          });
+          if (tooClose) continue;
+          palette.push(hue);
+          if (palette.length >= maxColors) break;
         }
-        resolve(rgbToHue(r / count, g / count, b / count));
+        resolve(palette);
       } catch {
-        resolve(null); // tainted canvas (no CORS) or decode failure
+        resolve([]); // tainted canvas (no CORS) or decode failure
       }
     };
     img.onerror = () => {
       signal?.removeEventListener('abort', onAbort);
-      resolve(null);
+      resolve([]);
     };
     img.src = url;
   });
+}
+
+// Back-compat single-hue wrapper, still used by the item form to pre-fill
+// the manual colour picker when a cover is first fetched.
+export async function extractDominantHue(url, signal) {
+  const palette = await extractPalette(url, signal, 1);
+  return palette.length ? palette[0] : null;
 }
 
 function rgbToHue(r, g, b) {
