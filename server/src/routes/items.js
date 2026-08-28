@@ -1,0 +1,122 @@
+import { Router } from 'express';
+import { pool } from '../db.js';
+import { requireAuth } from '../middleware/auth.js';
+
+export const itemsRouter = Router();
+itemsRouter.use(requireAuth);
+
+const CATEGORIES = ['books', 'movies', 'articles', 'quotes'];
+
+async function findItem(id, userId) {
+  const { rows } = await pool.query('SELECT * FROM items WHERE id = $1 AND user_id = $2', [
+    id,
+    userId,
+  ]);
+  return rows[0] || null;
+}
+
+itemsRouter.get('/', async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT * FROM items WHERE user_id = $1 ORDER BY created_at ASC, id ASC',
+      [req.session.userId]
+    );
+    res.json(rows);
+  } catch (err) {
+    next(err);
+  }
+});
+
+itemsRouter.post('/', async (req, res, next) => {
+  try {
+    const body = req.body || {};
+    if (!body.title || !String(body.title).trim()) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+    if (!CATEGORIES.includes(body.category)) {
+      return res.status(400).json({ error: 'Category must be one of ' + CATEGORIES.join(', ') });
+    }
+    const hue = Number.isFinite(body.hue) ? ((body.hue % 360) + 360) % 360 : Math.floor(Math.random() * 360);
+    const { rows } = await pool.query(
+      `INSERT INTO items (user_id, category, title, sub, year, hue, rating, verdict, impression, notes, keeps, facts, tags)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+       RETURNING *`,
+      [
+        req.session.userId,
+        body.category,
+        String(body.title).trim(),
+        body.sub || null,
+        body.year || null,
+        hue,
+        body.rating ?? null,
+        body.verdict || null,
+        body.impression || null,
+        JSON.stringify(body.notes ?? []),
+        JSON.stringify(body.keeps ?? []),
+        JSON.stringify(body.facts ?? []),
+        JSON.stringify(body.tags ?? []),
+      ]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    next(err);
+  }
+});
+
+itemsRouter.put('/:id', async (req, res, next) => {
+  try {
+    const existing = await findItem(req.params.id, req.session.userId);
+    if (!existing) return res.status(404).json({ error: 'Item not found' });
+    const body = req.body || {};
+
+    const category = body.category ?? existing.category;
+    const title = body.title !== undefined ? String(body.title).trim() : existing.title;
+    if (!title) return res.status(400).json({ error: 'Title is required' });
+    if (!CATEGORIES.includes(category)) {
+      return res.status(400).json({ error: 'Category must be one of ' + CATEGORIES.join(', ') });
+    }
+    const hue =
+      body.hue !== undefined && Number.isFinite(body.hue)
+        ? ((body.hue % 360) + 360) % 360
+        : existing.hue;
+
+    const { rows } = await pool.query(
+      `UPDATE items SET category=$1, title=$2, sub=$3, year=$4, hue=$5, rating=$6, verdict=$7,
+       impression=$8, notes=$9, keeps=$10, facts=$11, tags=$12
+       WHERE id=$13 AND user_id=$14
+       RETURNING *`,
+      [
+        category,
+        title,
+        body.sub !== undefined ? body.sub : existing.sub,
+        body.year !== undefined ? body.year : existing.year,
+        hue,
+        body.rating !== undefined ? body.rating : existing.rating,
+        body.verdict !== undefined ? body.verdict : existing.verdict,
+        body.impression !== undefined ? body.impression : existing.impression,
+        JSON.stringify(body.notes !== undefined ? body.notes : existing.notes),
+        JSON.stringify(body.keeps !== undefined ? body.keeps : existing.keeps),
+        JSON.stringify(body.facts !== undefined ? body.facts : existing.facts),
+        JSON.stringify(body.tags !== undefined ? body.tags : existing.tags),
+        req.params.id,
+        req.session.userId,
+      ]
+    );
+    res.json(rows[0]);
+  } catch (err) {
+    next(err);
+  }
+});
+
+itemsRouter.delete('/:id', async (req, res, next) => {
+  try {
+    const { rowCount } = await pool.query('DELETE FROM items WHERE id = $1 AND user_id = $2', [
+      req.params.id,
+      req.session.userId,
+    ]);
+    if (rowCount === 0) return res.status(404).json({ error: 'Item not found' });
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+});
