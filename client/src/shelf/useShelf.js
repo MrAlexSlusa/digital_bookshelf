@@ -1,7 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api.js';
-import { CATEGORY_ORDER, sectionsFor } from './constants.js';
+import { CATEGORY_META, CATEGORY_ORDER, sectionsFor } from './constants.js';
 import { useTheme } from './useTheme.js';
+
+function textOf(item) {
+  return [
+    item.title,
+    item.sub,
+    item.impression,
+    item.verdict,
+    ...(item.tags || []),
+    ...(item.facts || []),
+    ...(item.notes || []),
+    ...(item.keeps || []),
+  ]
+    .filter(Boolean)
+    .join(' \n ')
+    .toLowerCase();
+}
 
 function groupByCategory(items) {
   const grouped = Object.fromEntries(CATEGORY_ORDER.map((c) => [c, []]));
@@ -17,6 +33,8 @@ export function useShelf() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
+
+  const [query, setQuery] = useState('');
 
   const [cat, setCatIndex] = useState(0);
   const [active, setActive] = useState(0);
@@ -58,6 +76,15 @@ export function useShelf() {
   const categoryItems = grouped[categoryKey] || [];
   const activeIndex = categoryItems.length ? Math.min(active, categoryItems.length - 1) : 0;
   const activeItem = categoryItems[activeIndex] || null;
+
+  const searchResults = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return items
+      .filter((it) => textOf(it).includes(q))
+      .slice(0, 20)
+      .map((it) => ({ item: it, categoryLabel: CATEGORY_META[it.category]?.label || it.category }));
+  }, [items, query]);
 
   useEffect(() => {
     phaseRef.current = phase;
@@ -129,6 +156,19 @@ export function useShelf() {
   const selectActive = useCallback((idx) => {
     setActive(idx);
     setSec(0);
+  }, []);
+
+  const jumpToItem = useCallback((target) => {
+    const catIdx = CATEGORY_ORDER.indexOf(target.category);
+    if (catIdx === -1) return;
+    const list = groupedRef.current[target.category] || [];
+    const idx = list.findIndex((it) => it.id === target.id);
+    if (idx === -1) return;
+    setCatIndex(catIdx);
+    setActive(idx);
+    setSec(0);
+    setPhase('detail');
+    setQuery('');
   }, []);
 
   const suspendedRef = useRef(false);
@@ -227,6 +267,10 @@ export function useShelf() {
     activeIndex,
     activeItem,
     selectActive,
+    query,
+    setQuery,
+    searchResults,
+    jumpToItem,
     phase,
     forcePhase: setPhase,
     sec,

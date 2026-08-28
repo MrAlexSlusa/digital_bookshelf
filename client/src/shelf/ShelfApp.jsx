@@ -90,6 +90,10 @@ export default function ShelfApp({ onSignOut }) {
         totalNotes={shelf.totalNotes}
         onAdd={openCreateModal}
         onSignOut={onSignOut}
+        query={shelf.query}
+        setQuery={shelf.setQuery}
+        searchResults={shelf.searchResults}
+        onJumpToItem={shelf.jumpToItem}
       />
 
       <CategoryTabs cat={shelf.cat} counts={counts} accent={accent} onSelect={shelf.setCat} />

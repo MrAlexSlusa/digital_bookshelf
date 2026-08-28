@@ -1,4 +1,17 @@
-export default function Header({ theme, toggleTheme, totalItems, totalNotes, onAdd, onSignOut }) {
+import SearchBar from './SearchBar.jsx';
+
+export default function Header({
+  theme,
+  toggleTheme,
+  totalItems,
+  totalNotes,
+  onAdd,
+  onSignOut,
+  query,
+  setQuery,
+  searchResults,
+  onJumpToItem,
+}) {
   return (
     <header className="shelf-header">
       <div className="brand">
@@ -9,6 +22,7 @@ export default function Header({ theme, toggleTheme, totalItems, totalNotes, onA
         </div>
         <span className="brand-word">Shelf</span>
       </div>
+      <SearchBar query={query} setQuery={setQuery} results={searchResults} onJump={onJumpToItem} />
       <div className="header-right">
         <span className="count-label">
           {totalItems} thing{totalItems === 1 ? '' : 's'} kept · {totalNotes} note{totalNotes === 1 ? '' : 's'}
