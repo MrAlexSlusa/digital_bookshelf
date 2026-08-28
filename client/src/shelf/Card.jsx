@@ -39,10 +39,12 @@ export default function Card({ item, shape, dark, glow, motion, d, nudge, gap, l
 
           {(shape.kind === 'spine' || shape.kind === 'film') && (
             <div className="card-content-portrait">
-              <div>
-                <div className="card-portrait-rule" />
-                <h3 className="card-portrait-title">{item.title}</h3>
-              </div>
+              {!(shape.kind === 'spine' && item.coverUrl) && (
+                <div>
+                  <div className="card-portrait-rule" />
+                  <h3 className="card-portrait-title">{item.title}</h3>
+                </div>
+              )}
               <div>
                 <p className="card-portrait-sub">{item.sub}</p>
                 <p className="card-portrait-year">{item.year}</p>
