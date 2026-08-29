@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { Router } from 'express';
 import { pool } from '../db.js';
+import { signToken } from '../tokenAuth.js';
 
 export const authRouter = Router();
 
@@ -36,7 +37,7 @@ authRouter.post('/register', async (req, res, next) => {
     req.session.regenerate((err) => {
       if (err) return next(err);
       req.session.userId = user.id;
-      res.status(201).json({ user: publicUser(user) });
+      res.status(201).json({ user: publicUser(user), token: signToken(user.id) });
     });
   } catch (err) {
     next(err);
@@ -58,7 +59,7 @@ authRouter.post('/login', async (req, res, next) => {
     req.session.regenerate((err) => {
       if (err) return next(err);
       req.session.userId = user.id;
-      res.json({ user: publicUser(user) });
+      res.json({ user: publicUser(user), token: signToken(user.id) });
     });
   } catch (err) {
     next(err);
@@ -75,10 +76,8 @@ authRouter.post('/logout', (req, res, next) => {
 
 authRouter.get('/me', async (req, res, next) => {
   try {
-    if (!req.session?.userId) return res.json({ user: null });
-    const result = await pool.query('SELECT id, email, created_at FROM users WHERE id = $1', [
-      req.session.userId,
-    ]);
+    if (!req.userId) return res.json({ user: null });
+    const result = await pool.query('SELECT id, email, created_at FROM users WHERE id = $1', [req.userId]);
     if (result.rowCount === 0) return res.json({ user: null });
     res.json({ user: publicUser(result.rows[0]) });
   } catch (err) {

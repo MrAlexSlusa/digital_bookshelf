@@ -22,7 +22,7 @@ itemsRouter.get('/', async (req, res, next) => {
   try {
     const { rows } = await pool.query(
       `SELECT ${SELECT_COLUMNS} FROM items WHERE user_id = $1 ORDER BY created_at ASC, id ASC`,
-      [req.session.userId]
+      [req.userId]
     );
     res.json(rows);
   } catch (err) {
@@ -45,7 +45,7 @@ itemsRouter.post('/', async (req, res, next) => {
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
        RETURNING ${SELECT_COLUMNS}`,
       [
-        req.session.userId,
+        req.userId,
         body.category,
         String(body.title).trim(),
         body.sub || null,
@@ -69,7 +69,7 @@ itemsRouter.post('/', async (req, res, next) => {
 
 itemsRouter.put('/:id', async (req, res, next) => {
   try {
-    const existing = await findItem(req.params.id, req.session.userId);
+    const existing = await findItem(req.params.id, req.userId);
     if (!existing) return res.status(404).json({ error: 'Item not found' });
     const body = req.body || {};
 
@@ -104,7 +104,7 @@ itemsRouter.put('/:id', async (req, res, next) => {
         JSON.stringify(body.tags !== undefined ? body.tags : existing.tags),
         body.coverUrl !== undefined ? body.coverUrl || null : existing.coverUrl,
         req.params.id,
-        req.session.userId,
+        req.userId,
       ]
     );
     res.json(rows[0]);
@@ -117,7 +117,7 @@ itemsRouter.delete('/:id', async (req, res, next) => {
   try {
     const { rowCount } = await pool.query('DELETE FROM items WHERE id = $1 AND user_id = $2', [
       req.params.id,
-      req.session.userId,
+      req.userId,
     ]);
     if (rowCount === 0) return res.status(404).json({ error: 'Item not found' });
     res.status(204).end();

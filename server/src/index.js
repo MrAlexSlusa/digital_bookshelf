@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { authRouter } from './routes/auth.js';
 import { itemsRouter } from './routes/items.js';
 import { initDb, pool } from './db.js';
+import { verifyToken } from './tokenAuth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3001;
@@ -49,6 +50,17 @@ app.use(
     },
   })
 );
+
+// Safari blocks the session cookie across origins (github.io frontend,
+// onrender.com backend), so requests can also authenticate with a signed
+// bearer token instead. Resolves req.userId without touching the session
+// store, so token-authed requests don't create throwaway session rows.
+app.use((req, res, next) => {
+  const match = /^Bearer (.+)$/.exec(req.headers.authorization || '');
+  const tokenUserId = match ? verifyToken(match[1]) : null;
+  req.userId = req.session.userId || tokenUserId || null;
+  next();
+});
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', uptime: process.uptime() });
