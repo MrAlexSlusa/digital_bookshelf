@@ -239,7 +239,12 @@ export default function ShelfApp({ user, onUserUpdate, onSignOut }) {
       )}
 
       {accountOpen && (
-        <AccountSettings user={user} onUpdate={handleAccountUpdate} onClose={() => setAccountOpen(false)} />
+        <AccountSettings
+          user={user}
+          onUpdate={handleAccountUpdate}
+          onClose={() => setAccountOpen(false)}
+          onAccountDeleted={onSignOut}
+        />
       )}
 
       {importOpen && (

@@ -538,7 +538,12 @@ button { font-family: inherit; }
 .settings-section-title {
   font: 400 15px/1.1 'Instrument Serif', serif; margin: 0 0 16px;
 }
+.settings-section-title.danger { color: #e0796c; }
+.settings-danger-note { margin: 0 0 16px; font: 400 13px/1.4 'Barlow Condensed'; color: var(--dim); }
 .settings-divider { border: 0; border-top: 1px solid var(--line); margin: 28px 0; }
+
+.btn-danger { border-color: #e0796c; color: #e0796c; }
+.btn-danger:hover { background: #e0796c; color: var(--bg); }
 
 .avatar-color-row { display: flex; gap: 10px; flex-wrap: wrap; }
 .avatar-swatch {

@@ -56,6 +56,8 @@ export const api = {
     request('/account/email', { method: 'PATCH', body: JSON.stringify({ email, currentPassword }) }),
   updatePassword: (currentPassword, newPassword) =>
     request('/account/password', { method: 'PATCH', body: JSON.stringify({ currentPassword, newPassword }) }),
+  deleteAccount: (currentPassword) =>
+    request('/account', { method: 'DELETE', body: JSON.stringify({ currentPassword }) }).finally(() => setToken(null)),
 
   getItems: () => request('/items'),
   createItem: (data) => request('/items', { method: 'POST', body: JSON.stringify(data) }),
