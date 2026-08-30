@@ -5,17 +5,41 @@ import Carousel from './Carousel.jsx';
 import SelectionBlock from './SelectionBlock.jsx';
 import DetailView from './DetailView.jsx';
 import ItemFormModal from './ItemFormModal.jsx';
+import FriendsPanel from './FriendsPanel.jsx';
 import { useShelf } from './useShelf.js';
 import { CATEGORY_META, CATEGORY_ORDER, shapeFor } from './constants.js';
 import { accentColors, washColors, washStyle } from './styles.js';
 import { useCoverPalette } from './useCoverPalette.js';
+import { api } from '../api.js';
 
 const MOTION = 1;
 const GLOW = 1;
 
-export default function ShelfApp({ onSignOut }) {
+export default function ShelfApp({ user, onSignOut }) {
   const shelf = useShelf();
   const [modal, setModal] = useState(null); // null | { mode: 'create' | 'edit', item? }
+  const [friendsOpen, setFriendsOpen] = useState(false);
+  const [friendBadgeCount, setFriendBadgeCount] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function poll() {
+      try {
+        const [requests, unread] = await Promise.all([api.getFriendRequests(), api.getUnreadCounts()]);
+        if (cancelled) return;
+        const unreadTotal = unread.reduce((sum, r) => sum + r.count, 0);
+        setFriendBadgeCount(requests.length + unreadTotal);
+      } catch {
+        // Ignore transient failures — the badge just stays stale until the next poll.
+      }
+    }
+    poll();
+    const timer = setInterval(poll, 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [friendsOpen]);
 
   useEffect(() => {
     shelf.setKeyboardSuspended(Boolean(modal));
@@ -97,6 +121,8 @@ export default function ShelfApp({ onSignOut }) {
         setQuery={shelf.setQuery}
         searchResults={shelf.searchResults}
         onJumpToItem={shelf.jumpToItem}
+        onOpenFriends={() => setFriendsOpen(true)}
+        friendBadgeCount={friendBadgeCount}
       />
 
       <CategoryTabs cat={shelf.cat} counts={counts} accent={accent} onSelect={shelf.setCat} />
@@ -202,6 +228,8 @@ export default function ShelfApp({ onSignOut }) {
           onCancel={() => setModal(null)}
         />
       )}
+
+      {friendsOpen && <FriendsPanel myUserId={user?.id} onClose={() => setFriendsOpen(false)} />}
     </div>
   );
 }

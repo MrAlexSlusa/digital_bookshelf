@@ -8,6 +8,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { authRouter } from './routes/auth.js';
 import { itemsRouter } from './routes/items.js';
+import { friendsRouter } from './routes/friends.js';
+import { messagesRouter } from './routes/messages.js';
 import { initDb, pool } from './db.js';
 import { verifyToken } from './tokenAuth.js';
 
@@ -68,6 +70,8 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRouter);
 app.use('/api/items', itemsRouter);
+app.use('/api/friends', friendsRouter);
+app.use('/api/messages', messagesRouter);
 
 const clientDist = path.join(__dirname, '..', '..', 'client', 'dist');
 if (fs.existsSync(clientDist)) {

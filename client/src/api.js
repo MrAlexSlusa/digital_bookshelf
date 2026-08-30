@@ -55,4 +55,17 @@ export const api = {
   createItem: (data) => request('/items', { method: 'POST', body: JSON.stringify(data) }),
   updateItem: (id, data) => request(`/items/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteItem: (id) => request(`/items/${id}`, { method: 'DELETE' }),
+
+  getFriends: () => request('/friends'),
+  getFriendRequests: () => request('/friends/requests'),
+  getSentFriendRequests: () => request('/friends/sent'),
+  addFriend: (email) => request('/friends', { method: 'POST', body: JSON.stringify({ email }) }),
+  acceptFriendRequest: (id) => request(`/friends/${id}/accept`, { method: 'POST' }),
+  declineFriendRequest: (id) => request(`/friends/${id}/decline`, { method: 'POST' }),
+  removeFriend: (id) => request(`/friends/${id}`, { method: 'DELETE' }),
+
+  getMessages: (friendId) => request(`/messages/${friendId}`),
+  sendMessage: (friendId, content) =>
+    request(`/messages/${friendId}`, { method: 'POST', body: JSON.stringify({ content }) }),
+  getUnreadCounts: () => request('/messages/unread'),
 };
