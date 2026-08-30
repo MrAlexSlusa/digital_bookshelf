@@ -457,6 +457,8 @@ button { font-family: inherit; }
 }
 .form-field input[type='text'],
 .form-field input[type='number'],
+.form-field input[type='email'],
+.form-field input[type='password'],
 .form-field select,
 .form-field textarea {
   background: var(--bg); border: 1px solid var(--line); border-radius: 4px; color: var(--fg);
@@ -524,6 +526,27 @@ button { font-family: inherit; }
 .section-toolbar { display: flex; justify-content: flex-end; margin-bottom: 4px; }
 
 .form-error { color: #e0796c; font: 400 13px/1.4 'Barlow Condensed'; margin: 0 0 16px; }
+.form-success { color: #3ba874; font: 400 13px/1.4 'Barlow Condensed'; margin: 0 0 16px; }
+
+.avatar-btn {
+  width: 32px; height: 32px; flex: none; border-radius: 50%; border: 1px solid var(--line);
+  color: #fff; cursor: pointer; font: 600 13px/1 'IBM Plex Mono', monospace;
+  display: flex; align-items: center; justify-content: center; transition: opacity 0.2s ease;
+}
+.avatar-btn:hover { opacity: 0.85; }
+
+.settings-section-title {
+  font: 400 15px/1.1 'Instrument Serif', serif; margin: 0 0 16px;
+}
+.settings-divider { border: 0; border-top: 1px solid var(--line); margin: 28px 0; }
+
+.avatar-color-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.avatar-swatch {
+  width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; cursor: pointer;
+  padding: 0; transition: border-color 0.2s ease, transform 0.15s ease;
+}
+.avatar-swatch:hover { transform: scale(1.08); }
+.avatar-swatch.selected { border-color: var(--fg); }
 
 /* ---------- Stats ---------- */
 .stats-main {

@@ -51,6 +51,12 @@ export const api = {
   logout: () => request('/auth/logout', { method: 'POST' }).finally(() => setToken(null)),
   me: () => request('/auth/me'),
 
+  updateAccount: (data) => request('/account', { method: 'PATCH', body: JSON.stringify(data) }),
+  updateEmail: (email, currentPassword) =>
+    request('/account/email', { method: 'PATCH', body: JSON.stringify({ email, currentPassword }) }),
+  updatePassword: (currentPassword, newPassword) =>
+    request('/account/password', { method: 'PATCH', body: JSON.stringify({ currentPassword, newPassword }) }),
+
   getItems: () => request('/items'),
   createItem: (data) => request('/items', { method: 'POST', body: JSON.stringify(data) }),
   bulkCreateItems: (items) => request('/items/bulk', { method: 'POST', body: JSON.stringify({ items }) }),
