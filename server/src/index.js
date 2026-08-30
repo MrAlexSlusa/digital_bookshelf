@@ -6,6 +6,7 @@ import session from 'express-session';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { accountRouter } from './routes/account.js';
 import { authRouter } from './routes/auth.js';
 import { itemsRouter } from './routes/items.js';
 import { initDb, pool } from './db.js';
@@ -67,6 +68,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/auth', authRouter);
+app.use('/api/account', accountRouter);
 app.use('/api/items', itemsRouter);
 
 const clientDist = path.join(__dirname, '..', '..', 'client', 'dist');

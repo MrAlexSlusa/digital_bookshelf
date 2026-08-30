@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Header from './Header.jsx';
 import CategoryTabs from './CategoryTabs.jsx';
 import Carousel from './Carousel.jsx';
 import SelectionBlock from './SelectionBlock.jsx';
 import DetailView from './DetailView.jsx';
 import ItemFormModal from './ItemFormModal.jsx';
+import AccountSettings from './AccountSettings.jsx';
 import { useShelf } from './useShelf.js';
+import { api } from '../api.js';
 import { CATEGORY_META, CATEGORY_ORDER, shapeFor } from './constants.js';
 import { accentColors, washColors, washStyle } from './styles.js';
 import { useCoverPalette } from './useCoverPalette.js';
@@ -13,13 +15,32 @@ import { useCoverPalette } from './useCoverPalette.js';
 const MOTION = 1;
 const GLOW = 1;
 
-export default function ShelfApp({ onSignOut }) {
-  const shelf = useShelf();
+export default function ShelfApp({ user, onUserUpdate, onSignOut }) {
+  const shelf = useShelf(user);
   const [modal, setModal] = useState(null); // null | { mode: 'create' | 'edit', item? }
+  const [accountOpen, setAccountOpen] = useState(false);
 
   useEffect(() => {
-    shelf.setKeyboardSuspended(Boolean(modal));
-  }, [modal, shelf]);
+    shelf.setKeyboardSuspended(Boolean(modal) || accountOpen);
+  }, [modal, accountOpen, shelf]);
+
+  // The header's quick theme toggle changes shelf.theme locally; mirror that
+  // onto the account so it's remembered across devices, not just this browser.
+  const themeMounted = useRef(false);
+  useEffect(() => {
+    if (!themeMounted.current) {
+      themeMounted.current = true;
+      return;
+    }
+    if (shelf.theme === user?.theme) return;
+    api.updateAccount({ theme: shelf.theme }).then(({ user: updated }) => onUserUpdate(updated)).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shelf.theme]);
+
+  function handleAccountUpdate(updated) {
+    onUserUpdate(updated);
+    shelf.setTheme(updated.theme);
+  }
 
   const dark = shelf.theme === 'dark';
   const categoryMeta = CATEGORY_META[shelf.categoryKey];
@@ -87,11 +108,13 @@ export default function ShelfApp({ onSignOut }) {
       <div style={washStyle(washA, washB)} />
 
       <Header
+        user={user}
         theme={shelf.theme}
         toggleTheme={shelf.toggleTheme}
         totalItems={shelf.totalItems}
         totalNotes={shelf.totalNotes}
         onAdd={openCreateModal}
+        onOpenAccount={() => setAccountOpen(true)}
         onSignOut={onSignOut}
         query={shelf.query}
         setQuery={shelf.setQuery}
@@ -201,6 +224,10 @@ export default function ShelfApp({ onSignOut }) {
           onSubmit={handleModalSubmit}
           onCancel={() => setModal(null)}
         />
+      )}
+
+      {accountOpen && (
+        <AccountSettings user={user} onUpdate={handleAccountUpdate} onClose={() => setAccountOpen(false)} />
       )}
     </div>
   );

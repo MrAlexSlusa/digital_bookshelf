@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 
-export function useTheme() {
+export function useTheme(initialTheme) {
   const [theme, setTheme] = useState(() => {
+    if (initialTheme) return initialTheme;
     try {
       return localStorage.getItem('shelf-theme') || 'dark';
     } catch {
@@ -20,5 +21,5 @@ export function useTheme() {
 
   const toggleTheme = useCallback(() => setTheme((t) => (t === 'dark' ? 'light' : 'dark')), []);
 
-  return { theme, toggleTheme };
+  return { theme, setTheme, toggleTheme };
 }

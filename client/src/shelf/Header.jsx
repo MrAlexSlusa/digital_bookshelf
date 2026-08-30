@@ -1,17 +1,20 @@
 import SearchBar from './SearchBar.jsx';
 
 export default function Header({
+  user,
   theme,
   toggleTheme,
   totalItems,
   totalNotes,
   onAdd,
+  onOpenAccount,
   onSignOut,
   query,
   setQuery,
   searchResults,
   onJumpToItem,
 }) {
+  const initial = (user?.displayName || user?.email || '?').trim().charAt(0).toUpperCase();
   return (
     <header className="shelf-header">
       <div className="brand">
@@ -34,6 +37,16 @@ export default function Header({
         <button type="button" className="pill-btn" onClick={toggleTheme}>
           <span className="theme-dot" />
           {theme === 'dark' ? 'Dark' : 'Light'}
+        </button>
+        <button
+          type="button"
+          className="avatar-btn"
+          style={{ background: user?.avatarColor || '#7c6cf5' }}
+          onClick={onOpenAccount}
+          aria-label="Account settings"
+          title={user?.displayName || user?.email}
+        >
+          {initial}
         </button>
         <button type="button" className="pill-btn" onClick={onSignOut}>
           Sign out
