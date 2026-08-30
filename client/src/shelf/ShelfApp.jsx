@@ -266,7 +266,12 @@ export default function ShelfApp({ user, onUserUpdate, onSignOut }) {
       {friendsOpen && <FriendsPanel myUserId={user?.id} onClose={() => setFriendsOpen(false)} />}
 
       {accountOpen && (
-        <AccountSettings user={user} onUpdate={handleAccountUpdate} onClose={() => setAccountOpen(false)} />
+        <AccountSettings
+          user={user}
+          onUpdate={handleAccountUpdate}
+          onClose={() => setAccountOpen(false)}
+          onAccountDeleted={onSignOut}
+        />
       )}
 
       {importOpen && (

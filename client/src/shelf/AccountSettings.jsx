@@ -3,7 +3,7 @@ import { api } from '../api.js';
 
 const AVATAR_COLORS = ['#7c6cf5', '#e0607e', '#e0a83e', '#3ba874', '#3e8ee0', '#e06b3e', '#7e7e7e'];
 
-export default function AccountSettings({ user, onUpdate, onClose }) {
+export default function AccountSettings({ user, onUpdate, onClose, onAccountDeleted }) {
   const [displayName, setDisplayName] = useState(user.displayName || '');
   const [avatarColor, setAvatarColor] = useState(user.avatarColor || AVATAR_COLORS[0]);
   const [bio, setBio] = useState(user.bio || '');
@@ -24,6 +24,10 @@ export default function AccountSettings({ user, onUpdate, onClose }) {
   const [passwordError, setPasswordError] = useState(null);
   const [passwordSaved, setPasswordSaved] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   async function handleProfileSubmit(e) {
     e.preventDefault();
@@ -78,6 +82,22 @@ export default function AccountSettings({ user, onUpdate, onClose }) {
       setPasswordError(err.message);
     } finally {
       setSavingPassword(false);
+    }
+  }
+
+  async function handleDeleteSubmit(e) {
+    e.preventDefault();
+    if (!window.confirm('Delete your account? This permanently removes everything on your shelf and cannot be undone.')) {
+      return;
+    }
+    setDeleteError(null);
+    setDeleting(true);
+    try {
+      await api.deleteAccount(deletePassword);
+      onAccountDeleted();
+    } catch (err) {
+      setDeleteError(err.message);
+      setDeleting(false);
     }
   }
 
@@ -220,11 +240,39 @@ export default function AccountSettings({ user, onUpdate, onClose }) {
           {passwordSaved && <p className="form-success">Password updated.</p>}
 
           <div className="modal-actions">
+            <button type="submit" className="btn-pill" disabled={savingPassword}>
+              {savingPassword ? 'Saving…' : 'Update password'}
+            </button>
+          </div>
+        </form>
+
+        <hr className="settings-divider" />
+
+        <form onSubmit={handleDeleteSubmit}>
+          <h3 className="settings-section-title danger">Delete account</h3>
+          <p className="settings-danger-note">
+            Permanently deletes your account and everything on your shelf. This can&rsquo;t be undone.
+          </p>
+          <div className="form-field">
+            <label htmlFor="acct-delete-password">Current password</label>
+            <input
+              id="acct-delete-password"
+              type="password"
+              autoComplete="current-password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              required
+            />
+          </div>
+
+          {deleteError && <p className="form-error">{deleteError}</p>}
+
+          <div className="modal-actions">
             <button type="button" className="btn-ghost" onClick={onClose}>
               Close
             </button>
-            <button type="submit" className="btn-pill" disabled={savingPassword}>
-              {savingPassword ? 'Saving…' : 'Update password'}
+            <button type="submit" className="btn-pill btn-danger" disabled={deleting}>
+              {deleting ? 'Deleting…' : 'Delete account'}
             </button>
           </div>
         </form>

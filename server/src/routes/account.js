@@ -114,3 +114,28 @@ accountRouter.patch('/password', async (req, res, next) => {
     next(err);
   }
 });
+
+accountRouter.delete('/', async (req, res, next) => {
+  try {
+    const currentPassword = String(req.body?.currentPassword || '');
+
+    const existing = await pool.query('SELECT * FROM users WHERE id = $1', [req.userId]);
+    const user = existing.rows[0];
+    if (!user) return res.status(404).json({ error: 'Account not found' });
+
+    const valid = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
+
+    // Cascades to the user's items via the FK; the session is destroyed
+    // separately since it lives in its own store, not the users table.
+    await pool.query('DELETE FROM users WHERE id = $1', [req.userId]);
+
+    req.session.destroy((err) => {
+      if (err) return next(err);
+      res.clearCookie('bookshelf.sid');
+      res.status(204).end();
+    });
+  } catch (err) {
+    next(err);
+  }
+});
