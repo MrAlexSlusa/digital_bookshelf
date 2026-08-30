@@ -15,6 +15,8 @@ export default function Header({
   setQuery,
   searchResults,
   onJumpToItem,
+  onOpenFriends,
+  friendBadgeCount,
 }) {
   const initial = (user?.displayName || user?.email || '?').trim().charAt(0).toUpperCase();
   return (
@@ -35,6 +37,10 @@ export default function Header({
         <button type="button" className="pill-btn" onClick={onAdd}>
           <span aria-hidden="true">+</span>
           <span>Add</span>
+        </button>
+        <button type="button" className="pill-btn" onClick={onOpenFriends}>
+          <span>Friends</span>
+          {friendBadgeCount > 0 && <span className="unread-badge">{friendBadgeCount}</span>}
         </button>
         <button type="button" className="pill-btn" onClick={onImport}>
           <span>Import</span>

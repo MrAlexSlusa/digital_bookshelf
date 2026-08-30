@@ -5,14 +5,15 @@ import Carousel from './Carousel.jsx';
 import SelectionBlock from './SelectionBlock.jsx';
 import DetailView from './DetailView.jsx';
 import ItemFormModal from './ItemFormModal.jsx';
+import FriendsPanel from './FriendsPanel.jsx';
 import AccountSettings from './AccountSettings.jsx';
 import ImportModal from './ImportModal.jsx';
 import StatsView from './StatsView.jsx';
 import { useShelf } from './useShelf.js';
-import { api } from '../api.js';
 import { CATEGORY_META, CATEGORY_ORDER, shapeFor } from './constants.js';
 import { accentColors, washColors, washStyle } from './styles.js';
 import { useCoverPalette } from './useCoverPalette.js';
+import { api } from '../api.js';
 
 const MOTION = 1;
 const GLOW = 1;
@@ -20,13 +21,35 @@ const GLOW = 1;
 export default function ShelfApp({ user, onUserUpdate, onSignOut }) {
   const shelf = useShelf(user);
   const [modal, setModal] = useState(null); // null | { mode: 'create' | 'edit', item? }
+  const [friendsOpen, setFriendsOpen] = useState(false);
+  const [friendBadgeCount, setFriendBadgeCount] = useState(0);
   const [accountOpen, setAccountOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [showStats, setShowStats] = useState(false);
 
   useEffect(() => {
-    shelf.setKeyboardSuspended(Boolean(modal) || accountOpen || importOpen);
-  }, [modal, accountOpen, importOpen, shelf]);
+    let cancelled = false;
+    async function poll() {
+      try {
+        const [requests, unread] = await Promise.all([api.getFriendRequests(), api.getUnreadCounts()]);
+        if (cancelled) return;
+        const unreadTotal = unread.reduce((sum, r) => sum + r.count, 0);
+        setFriendBadgeCount(requests.length + unreadTotal);
+      } catch {
+        // Ignore transient failures — the badge just stays stale until the next poll.
+      }
+    }
+    poll();
+    const timer = setInterval(poll, 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [friendsOpen]);
+
+  useEffect(() => {
+    shelf.setKeyboardSuspended(Boolean(modal) || accountOpen || importOpen || friendsOpen);
+  }, [modal, accountOpen, importOpen, friendsOpen, shelf]);
 
   // The header's quick theme toggle changes shelf.theme locally; mirror that
   // onto the account so it's remembered across devices, not just this browser.
@@ -126,105 +149,107 @@ export default function ShelfApp({ user, onUserUpdate, onSignOut }) {
         setQuery={shelf.setQuery}
         searchResults={shelf.searchResults}
         onJumpToItem={shelf.jumpToItem}
+        onOpenFriends={() => setFriendsOpen(true)}
+        friendBadgeCount={friendBadgeCount}
       />
 
       {showStats ? (
         <StatsView items={shelf.items} dark={dark} accent={accent} onClose={() => setShowStats(false)} />
       ) : (
         <>
-      <CategoryTabs cat={shelf.cat} counts={counts} accent={accent} onSelect={shelf.setCat} />
+          <CategoryTabs cat={shelf.cat} counts={counts} accent={accent} onSelect={shelf.setCat} />
 
-      {shelf.loading && (
-        <div className="empty-state">
-          <p className="empty-title">Loading your shelf…</p>
-        </div>
-      )}
-
-      {!shelf.loading && shelf.loadError && (
-        <div className="empty-state">
-          <p className="empty-title">Couldn&rsquo;t load your shelf</p>
-          <p className="empty-sub">{shelf.loadError}</p>
-          <button type="button" className="btn-pill" onClick={shelf.reload}>
-            Try again
-          </button>
-        </div>
-      )}
-
-      {!shelf.loading && !shelf.loadError && isShelfPhase && (
-        <main className="shelf-main">
-          <div className="intro-row">
-            <p className="intro-blurb">{categoryMeta.blurb}</p>
-            <p className="pos-label">{posLabel}</p>
-          </div>
-
-          {n === 0 ? (
+          {shelf.loading && (
             <div className="empty-state">
-              <p className="empty-title">Nothing here yet</p>
-              <p className="empty-sub">Add your first {categoryMeta.singular} to start this shelf.</p>
-              <button type="button" className="btn-pill" onClick={openCreateModal}>
-                + Add {categoryMeta.singular}
+              <p className="empty-title">Loading your shelf…</p>
+            </div>
+          )}
+
+          {!shelf.loading && shelf.loadError && (
+            <div className="empty-state">
+              <p className="empty-title">Couldn&rsquo;t load your shelf</p>
+              <p className="empty-sub">{shelf.loadError}</p>
+              <button type="button" className="btn-pill" onClick={shelf.reload}>
+                Try again
               </button>
             </div>
-          ) : (
-            <>
-              <Carousel
-                items={shelf.categoryItems}
-                activeIndex={shelf.activeIndex}
-                shape={shape}
-                dark={dark}
-                glow={GLOW}
-                motion={MOTION}
-                nudge={shelf.nudge}
-                phase={shelf.phase}
-                accentSoft={accentSoft}
-                onWheel={shelf.onWheel}
-                onDragStart={shelf.onDragStart}
-                onSelect={shelf.selectActive}
-                onOpen={shelf.open}
-              />
-              <SelectionBlock
-                item={item}
-                verb={categoryMeta.verb}
-                accent={accent}
-                items={shelf.categoryItems}
-                activeIndex={shelf.activeIndex}
-                isQuoteCat={shelf.categoryKey === 'quotes'}
-                onSelect={shelf.selectActive}
-                onOpen={shelf.open}
-              />
-            </>
           )}
-        </main>
-      )}
 
-      {!shelf.loading && !shelf.loadError && isDetailPhase && item && (
-        <DetailView
-          item={item}
-          category={shelf.categoryKey}
-          categoryMeta={categoryMeta}
-          shape={shape}
-          dark={dark}
-          glow={GLOW}
-          motion={MOTION}
-          px={shelf.px}
-          py={shelf.py}
-          sec={shelf.sec}
-          setSec={shelf.setSec}
-          onParallax={shelf.onParallax}
-          onClose={shelf.close}
-          onPrev={() => shelf.move(-1)}
-          onNext={() => shelf.move(1)}
-          posLabel={posLabel}
-          accent={accent}
-          accentGlow={accentGlow}
-          onEdit={openEditModal}
-          onDelete={handleDelete}
-          onAddNote={handleAddNote}
-          onRemoveNote={handleRemoveNote}
-          onAddKeep={handleAddKeep}
-          onRemoveKeep={handleRemoveKeep}
-        />
-      )}
+          {!shelf.loading && !shelf.loadError && isShelfPhase && (
+            <main className="shelf-main">
+              <div className="intro-row">
+                <p className="intro-blurb">{categoryMeta.blurb}</p>
+                <p className="pos-label">{posLabel}</p>
+              </div>
+
+              {n === 0 ? (
+                <div className="empty-state">
+                  <p className="empty-title">Nothing here yet</p>
+                  <p className="empty-sub">Add your first {categoryMeta.singular} to start this shelf.</p>
+                  <button type="button" className="btn-pill" onClick={openCreateModal}>
+                    + Add {categoryMeta.singular}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <Carousel
+                    items={shelf.categoryItems}
+                    activeIndex={shelf.activeIndex}
+                    shape={shape}
+                    dark={dark}
+                    glow={GLOW}
+                    motion={MOTION}
+                    nudge={shelf.nudge}
+                    phase={shelf.phase}
+                    accentSoft={accentSoft}
+                    onWheel={shelf.onWheel}
+                    onDragStart={shelf.onDragStart}
+                    onSelect={shelf.selectActive}
+                    onOpen={shelf.open}
+                  />
+                  <SelectionBlock
+                    item={item}
+                    verb={categoryMeta.verb}
+                    accent={accent}
+                    items={shelf.categoryItems}
+                    activeIndex={shelf.activeIndex}
+                    isQuoteCat={shelf.categoryKey === 'quotes'}
+                    onSelect={shelf.selectActive}
+                    onOpen={shelf.open}
+                  />
+                </>
+              )}
+            </main>
+          )}
+
+          {!shelf.loading && !shelf.loadError && isDetailPhase && item && (
+            <DetailView
+              item={item}
+              category={shelf.categoryKey}
+              categoryMeta={categoryMeta}
+              shape={shape}
+              dark={dark}
+              glow={GLOW}
+              motion={MOTION}
+              px={shelf.px}
+              py={shelf.py}
+              sec={shelf.sec}
+              setSec={shelf.setSec}
+              onParallax={shelf.onParallax}
+              onClose={shelf.close}
+              onPrev={() => shelf.move(-1)}
+              onNext={() => shelf.move(1)}
+              posLabel={posLabel}
+              accent={accent}
+              accentGlow={accentGlow}
+              onEdit={openEditModal}
+              onDelete={handleDelete}
+              onAddNote={handleAddNote}
+              onRemoveNote={handleRemoveNote}
+              onAddKeep={handleAddKeep}
+              onRemoveKeep={handleRemoveKeep}
+            />
+          )}
         </>
       )}
 
@@ -237,6 +262,8 @@ export default function ShelfApp({ user, onUserUpdate, onSignOut }) {
           onCancel={() => setModal(null)}
         />
       )}
+
+      {friendsOpen && <FriendsPanel myUserId={user?.id} onClose={() => setFriendsOpen(false)} />}
 
       {accountOpen && (
         <AccountSettings user={user} onUpdate={handleAccountUpdate} onClose={() => setAccountOpen(false)} />

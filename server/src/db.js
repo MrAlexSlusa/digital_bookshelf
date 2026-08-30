@@ -69,5 +69,32 @@ export async function initDb() {
     ALTER TABLE items ADD COLUMN IF NOT EXISTS cover_url TEXT;
 
     CREATE INDEX IF NOT EXISTS items_user_category_idx ON items(user_id, category, created_at);
+
+    CREATE TABLE IF NOT EXISTS friendships (
+      id SERIAL PRIMARY KEY,
+      requester_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      addressee_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined')),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      CHECK (requester_id <> addressee_id)
+    );
+
+    -- One relationship per pair of users regardless of who sent the request.
+    CREATE UNIQUE INDEX IF NOT EXISTS friendships_pair_idx
+      ON friendships (LEAST(requester_id, addressee_id), GREATEST(requester_id, addressee_id));
+
+    CREATE TABLE IF NOT EXISTS messages (
+      id SERIAL PRIMARY KEY,
+      sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      receiver_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      content TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      read_at TIMESTAMPTZ
+    );
+
+    CREATE INDEX IF NOT EXISTS messages_conversation_idx
+      ON messages (LEAST(sender_id, receiver_id), GREATEST(sender_id, receiver_id), created_at);
+    CREATE INDEX IF NOT EXISTS messages_receiver_unread_idx ON messages (receiver_id, read_at);
   `);
 }
