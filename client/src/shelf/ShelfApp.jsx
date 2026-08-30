@@ -5,6 +5,7 @@ import Carousel from './Carousel.jsx';
 import SelectionBlock from './SelectionBlock.jsx';
 import DetailView from './DetailView.jsx';
 import ItemFormModal from './ItemFormModal.jsx';
+import ImportModal from './ImportModal.jsx';
 import { useShelf } from './useShelf.js';
 import { CATEGORY_META, CATEGORY_ORDER, shapeFor } from './constants.js';
 import { accentColors, washColors, washStyle } from './styles.js';
@@ -16,10 +17,11 @@ const GLOW = 1;
 export default function ShelfApp({ onSignOut }) {
   const shelf = useShelf();
   const [modal, setModal] = useState(null); // null | { mode: 'create' | 'edit', item? }
+  const [importOpen, setImportOpen] = useState(false);
 
   useEffect(() => {
-    shelf.setKeyboardSuspended(Boolean(modal));
-  }, [modal, shelf]);
+    shelf.setKeyboardSuspended(Boolean(modal) || importOpen);
+  }, [modal, importOpen, shelf]);
 
   const dark = shelf.theme === 'dark';
   const categoryMeta = CATEGORY_META[shelf.categoryKey];
@@ -92,6 +94,7 @@ export default function ShelfApp({ onSignOut }) {
         totalItems={shelf.totalItems}
         totalNotes={shelf.totalNotes}
         onAdd={openCreateModal}
+        onImport={() => setImportOpen(true)}
         onSignOut={onSignOut}
         query={shelf.query}
         setQuery={shelf.setQuery}
@@ -200,6 +203,16 @@ export default function ShelfApp({ onSignOut }) {
           dark={dark}
           onSubmit={handleModalSubmit}
           onCancel={() => setModal(null)}
+        />
+      )}
+
+      {importOpen && (
+        <ImportModal
+          onImport={async (items) => {
+            await shelf.bulkCreateItems(items);
+            setImportOpen(false);
+          }}
+          onCancel={() => setImportOpen(false)}
         />
       )}
     </div>

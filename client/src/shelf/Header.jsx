@@ -6,6 +6,7 @@ export default function Header({
   totalItems,
   totalNotes,
   onAdd,
+  onImport,
   onSignOut,
   query,
   setQuery,
@@ -30,6 +31,9 @@ export default function Header({
         <button type="button" className="pill-btn" onClick={onAdd}>
           <span aria-hidden="true">+</span>
           <span>Add</span>
+        </button>
+        <button type="button" className="pill-btn" onClick={onImport}>
+          <span>Import</span>
         </button>
         <button type="button" className="pill-btn" onClick={toggleTheme}>
           <span className="theme-dot" />
