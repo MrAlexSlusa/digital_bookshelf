@@ -8,7 +8,16 @@ export const authRouter = Router();
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function publicUser(row) {
-  return { id: row.id, email: row.email, createdAt: row.created_at };
+  return {
+    id: row.id,
+    email: row.email,
+    displayName: row.display_name,
+    avatarColor: row.avatar_color,
+    bio: row.bio,
+    theme: row.theme,
+    itemSort: row.item_sort,
+    createdAt: row.created_at,
+  };
 }
 
 authRouter.post('/register', async (req, res, next) => {
@@ -29,7 +38,7 @@ authRouter.post('/register', async (req, res, next) => {
 
     const passwordHash = await bcrypt.hash(password, 12);
     const result = await pool.query(
-      'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, email, created_at',
+      'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING *',
       [email, passwordHash]
     );
     const user = result.rows[0];
@@ -77,7 +86,7 @@ authRouter.post('/logout', (req, res, next) => {
 authRouter.get('/me', async (req, res, next) => {
   try {
     if (!req.userId) return res.json({ user: null });
-    const result = await pool.query('SELECT id, email, created_at FROM users WHERE id = $1', [req.userId]);
+    const result = await pool.query('SELECT * FROM users WHERE id = $1', [req.userId]);
     if (result.rowCount === 0) return res.json({ user: null });
     res.json({ user: publicUser(result.rows[0]) });
   } catch (err) {

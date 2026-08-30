@@ -27,8 +27,19 @@ export async function initDb() {
       id SERIAL PRIMARY KEY,
       email TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
+      display_name TEXT,
+      avatar_color TEXT NOT NULL DEFAULT '#7c6cf5',
+      bio TEXT,
+      theme TEXT NOT NULL DEFAULT 'dark' CHECK (theme IN ('dark', 'light')),
+      item_sort TEXT NOT NULL DEFAULT 'newest' CHECK (item_sort IN ('newest', 'oldest', 'title')),
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
+
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_color TEXT NOT NULL DEFAULT '#7c6cf5';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS theme TEXT NOT NULL DEFAULT 'dark';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS item_sort TEXT NOT NULL DEFAULT 'newest';
 
     -- Superseded by the "items" table below (one shelf, four categories,
     -- instead of a books-only schema with a fixed survey).

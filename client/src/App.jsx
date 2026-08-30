@@ -30,5 +30,5 @@ export default function App() {
     return <AuthGate onAuthenticated={setUser} />;
   }
 
-  return <ShelfApp user={user} onSignOut={handleSignOut} />;
+  return <ShelfApp user={user} onUserUpdate={setUser} onSignOut={handleSignOut} />;
 }

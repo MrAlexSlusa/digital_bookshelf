@@ -19,16 +19,26 @@ function textOf(item) {
     .toLowerCase();
 }
 
-function groupByCategory(items) {
+function sortItems(items, itemSort) {
+  const sorted = [...items];
+  if (itemSort === 'oldest') return sorted;
+  if (itemSort === 'title') return sorted.sort((a, b) => a.title.localeCompare(b.title));
+  return sorted.reverse(); // newest (default): items arrive oldest-first from the API
+}
+
+function groupByCategory(items, itemSort) {
   const grouped = Object.fromEntries(CATEGORY_ORDER.map((c) => [c, []]));
   for (const item of items) {
     if (grouped[item.category]) grouped[item.category].push(item);
   }
+  for (const key of CATEGORY_ORDER) {
+    grouped[key] = sortItems(grouped[key], itemSort);
+  }
   return grouped;
 }
 
-export function useShelf() {
-  const { theme, toggleTheme } = useTheme();
+export function useShelf(user) {
+  const { theme, setTheme, toggleTheme } = useTheme(user?.theme);
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,7 +81,7 @@ export function useShelf() {
     reload();
   }, [reload]);
 
-  const grouped = useMemo(() => groupByCategory(items), [items]);
+  const grouped = useMemo(() => groupByCategory(items, user?.itemSort), [items, user?.itemSort]);
   const categoryKey = CATEGORY_ORDER[cat];
   const categoryItems = grouped[categoryKey] || [];
   const activeIndex = categoryItems.length ? Math.min(active, categoryItems.length - 1) : 0;
@@ -245,6 +255,12 @@ export function useShelf() {
     return updated;
   }, []);
 
+  const bulkCreateItems = useCallback(async (items) => {
+    const created = await api.bulkCreateItems(items);
+    setItems((prev) => [...prev, ...created]);
+    return created;
+  }, []);
+
   const deleteItem = useCallback(async (id) => {
     await api.deleteItem(id);
     setItems((prev) => prev.filter((it) => it.id !== id));
@@ -254,6 +270,7 @@ export function useShelf() {
 
   return {
     theme,
+    setTheme,
     toggleTheme,
     items,
     loading,
@@ -285,6 +302,7 @@ export function useShelf() {
     onDragStart,
     onParallax,
     createItem,
+    bulkCreateItems,
     updateItem,
     deleteItem,
     setKeyboardSuspended,
