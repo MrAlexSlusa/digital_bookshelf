@@ -6,6 +6,7 @@ import SelectionBlock from './SelectionBlock.jsx';
 import DetailView from './DetailView.jsx';
 import ItemFormModal from './ItemFormModal.jsx';
 import ImportModal from './ImportModal.jsx';
+import StatsView from './StatsView.jsx';
 import { useShelf } from './useShelf.js';
 import { CATEGORY_META, CATEGORY_ORDER, shapeFor } from './constants.js';
 import { accentColors, washColors, washStyle } from './styles.js';
@@ -18,6 +19,7 @@ export default function ShelfApp({ onSignOut }) {
   const shelf = useShelf();
   const [modal, setModal] = useState(null); // null | { mode: 'create' | 'edit', item? }
   const [importOpen, setImportOpen] = useState(false);
+  const [showStats, setShowStats] = useState(false);
 
   useEffect(() => {
     shelf.setKeyboardSuspended(Boolean(modal) || importOpen);
@@ -95,6 +97,7 @@ export default function ShelfApp({ onSignOut }) {
         totalNotes={shelf.totalNotes}
         onAdd={openCreateModal}
         onImport={() => setImportOpen(true)}
+        onStats={() => setShowStats(true)}
         onSignOut={onSignOut}
         query={shelf.query}
         setQuery={shelf.setQuery}
@@ -102,6 +105,10 @@ export default function ShelfApp({ onSignOut }) {
         onJumpToItem={shelf.jumpToItem}
       />
 
+      {showStats ? (
+        <StatsView items={shelf.items} dark={dark} accent={accent} onClose={() => setShowStats(false)} />
+      ) : (
+        <>
       <CategoryTabs cat={shelf.cat} counts={counts} accent={accent} onSelect={shelf.setCat} />
 
       {shelf.loading && (
@@ -194,6 +201,8 @@ export default function ShelfApp({ onSignOut }) {
           onAddKeep={handleAddKeep}
           onRemoveKeep={handleRemoveKeep}
         />
+      )}
+        </>
       )}
 
       {modal && (
