@@ -476,6 +476,12 @@ button { font-family: inherit; }
 .repeat-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: flex-start; }
 .repeat-row input, .repeat-row textarea { flex: 1; }
 
+.import-preview-list { display: flex; flex-direction: column; gap: 8px; max-height: 46vh; overflow-y: auto; margin-bottom: 16px; }
+.import-preview-row { display: flex; gap: 8px; align-items: center; }
+.import-preview-row select { flex: 0 0 108px; }
+.import-preview-row input { flex: 1; min-width: 0; }
+.import-preview-row .import-year-input { flex: 0 0 70px; }
+
 .cover-lookup-row { display: flex; gap: 12px; align-items: flex-start; }
 .cover-lookup-preview {
   width: 46px; height: 68px; flex: none; object-fit: cover;

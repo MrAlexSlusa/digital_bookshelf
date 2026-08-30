@@ -67,6 +67,52 @@ itemsRouter.post('/', async (req, res, next) => {
   }
 });
 
+itemsRouter.post('/bulk', async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const items = Array.isArray(req.body?.items) ? req.body.items : [];
+    if (!items.length) return res.status(400).json({ error: 'No items to import' });
+    if (items.length > 500) return res.status(400).json({ error: 'Import is limited to 500 items at a time' });
+
+    for (const item of items) {
+      if (!item?.title || !String(item.title).trim()) {
+        return res.status(400).json({ error: 'Every item needs a title' });
+      }
+      if (!CATEGORIES.includes(item.category)) {
+        return res.status(400).json({ error: 'Category must be one of ' + CATEGORIES.join(', ') });
+      }
+    }
+
+    await client.query('BEGIN');
+    const created = [];
+    for (const item of items) {
+      const hue = Math.floor(Math.random() * 360);
+      const { rows } = await client.query(
+        `INSERT INTO items (user_id, category, title, sub, year, hue, tags)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)
+         RETURNING ${SELECT_COLUMNS}`,
+        [
+          req.userId,
+          item.category,
+          String(item.title).trim(),
+          item.sub || null,
+          item.year || null,
+          hue,
+          JSON.stringify(item.tags ?? []),
+        ]
+      );
+      created.push(rows[0]);
+    }
+    await client.query('COMMIT');
+    res.status(201).json(created);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    next(err);
+  } finally {
+    client.release();
+  }
+});
+
 itemsRouter.put('/:id', async (req, res, next) => {
   try {
     const existing = await findItem(req.params.id, req.userId);
