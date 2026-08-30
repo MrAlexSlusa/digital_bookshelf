@@ -59,6 +59,7 @@ export const api = {
 
   getItems: () => request('/items'),
   createItem: (data) => request('/items', { method: 'POST', body: JSON.stringify(data) }),
+  bulkCreateItems: (items) => request('/items/bulk', { method: 'POST', body: JSON.stringify({ items }) }),
   updateItem: (id, data) => request(`/items/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteItem: (id) => request(`/items/${id}`, { method: 'DELETE' }),
 };

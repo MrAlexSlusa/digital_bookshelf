@@ -6,6 +6,7 @@ import SelectionBlock from './SelectionBlock.jsx';
 import DetailView from './DetailView.jsx';
 import ItemFormModal from './ItemFormModal.jsx';
 import AccountSettings from './AccountSettings.jsx';
+import ImportModal from './ImportModal.jsx';
 import { useShelf } from './useShelf.js';
 import { api } from '../api.js';
 import { CATEGORY_META, CATEGORY_ORDER, shapeFor } from './constants.js';
@@ -19,10 +20,11 @@ export default function ShelfApp({ user, onUserUpdate, onSignOut }) {
   const shelf = useShelf(user);
   const [modal, setModal] = useState(null); // null | { mode: 'create' | 'edit', item? }
   const [accountOpen, setAccountOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   useEffect(() => {
-    shelf.setKeyboardSuspended(Boolean(modal) || accountOpen);
-  }, [modal, accountOpen, shelf]);
+    shelf.setKeyboardSuspended(Boolean(modal) || accountOpen || importOpen);
+  }, [modal, accountOpen, importOpen, shelf]);
 
   // The header's quick theme toggle changes shelf.theme locally; mirror that
   // onto the account so it's remembered across devices, not just this browser.
@@ -114,6 +116,7 @@ export default function ShelfApp({ user, onUserUpdate, onSignOut }) {
         totalItems={shelf.totalItems}
         totalNotes={shelf.totalNotes}
         onAdd={openCreateModal}
+        onImport={() => setImportOpen(true)}
         onOpenAccount={() => setAccountOpen(true)}
         onSignOut={onSignOut}
         query={shelf.query}
@@ -228,6 +231,16 @@ export default function ShelfApp({ user, onUserUpdate, onSignOut }) {
 
       {accountOpen && (
         <AccountSettings user={user} onUpdate={handleAccountUpdate} onClose={() => setAccountOpen(false)} />
+      )}
+
+      {importOpen && (
+        <ImportModal
+          onImport={async (items) => {
+            await shelf.bulkCreateItems(items);
+            setImportOpen(false);
+          }}
+          onCancel={() => setImportOpen(false)}
+        />
       )}
     </div>
   );

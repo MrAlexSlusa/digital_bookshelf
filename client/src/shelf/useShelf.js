@@ -255,6 +255,12 @@ export function useShelf(user) {
     return updated;
   }, []);
 
+  const bulkCreateItems = useCallback(async (items) => {
+    const created = await api.bulkCreateItems(items);
+    setItems((prev) => [...prev, ...created]);
+    return created;
+  }, []);
+
   const deleteItem = useCallback(async (id) => {
     await api.deleteItem(id);
     setItems((prev) => prev.filter((it) => it.id !== id));
@@ -296,6 +302,7 @@ export function useShelf(user) {
     onDragStart,
     onParallax,
     createItem,
+    bulkCreateItems,
     updateItem,
     deleteItem,
     setKeyboardSuspended,
