@@ -13,6 +13,7 @@ function publicUser(row) {
     email: row.email,
     displayName: row.display_name,
     avatarColor: row.avatar_color,
+    avatarUrl: row.avatar_url,
     bio: row.bio,
     theme: row.theme,
     itemSort: row.item_sort,

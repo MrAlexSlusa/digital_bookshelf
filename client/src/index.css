@@ -571,8 +571,10 @@ button { font-family: inherit; }
   width: 32px; height: 32px; flex: none; border-radius: 50%; border: 1px solid var(--line);
   color: #fff; cursor: pointer; font: 600 13px/1 'IBM Plex Mono', monospace;
   display: flex; align-items: center; justify-content: center; transition: opacity 0.2s ease;
+  overflow: hidden;
 }
 .avatar-btn:hover { opacity: 0.85; }
+.avatar-btn img { width: 100%; height: 100%; object-fit: cover; }
 
 .settings-section-title {
   font: 400 15px/1.1 'Instrument Serif', serif; margin: 0 0 16px;
@@ -583,6 +585,16 @@ button { font-family: inherit; }
 
 .btn-danger { border-color: #e0796c; color: #e0796c; }
 .btn-danger:hover { background: #e0796c; color: var(--bg); }
+
+.avatar-upload-row { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+.avatar-preview {
+  width: 64px; height: 64px; flex: none; border-radius: 50%; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font: 600 22px/1 'IBM Plex Mono', monospace; border: 1px solid var(--line);
+}
+.avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-upload-actions { display: flex; gap: 10px; }
+.avatar-upload-btn { cursor: pointer; }
 
 .avatar-color-row { display: flex; gap: 10px; flex-wrap: wrap; }
 .avatar-swatch {

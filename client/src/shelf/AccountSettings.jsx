@@ -3,15 +3,60 @@ import { api } from '../api.js';
 
 const AVATAR_COLORS = ['#7c6cf5', '#e0607e', '#e0a83e', '#3ba874', '#3e8ee0', '#e06b3e', '#7e7e7e'];
 
+// Downscales/compresses to a small square JPEG data URL so the picture fits
+// comfortably in the request body and the users.avatar_url column.
+function resizeImageToDataUrl(file, size) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const scale = Math.max(size / img.width, size / img.height);
+      const w = img.width * scale;
+      const h = img.height * scale;
+      ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+      resolve(canvas.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Could not load image'));
+    };
+    img.src = objectUrl;
+  });
+}
+
 export default function AccountSettings({ user, onUpdate, onClose, onAccountDeleted }) {
   const [displayName, setDisplayName] = useState(user.displayName || '');
   const [avatarColor, setAvatarColor] = useState(user.avatarColor || AVATAR_COLORS[0]);
+  const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl || '');
+  const [avatarError, setAvatarError] = useState(null);
   const [bio, setBio] = useState(user.bio || '');
   const [theme, setTheme] = useState(user.theme || 'dark');
   const [itemSort, setItemSort] = useState(user.itemSort || 'newest');
   const [profileError, setProfileError] = useState(null);
   const [profileSaved, setProfileSaved] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
+
+  async function handleAvatarFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setAvatarError(null);
+    if (!file.type.startsWith('image/')) {
+      setAvatarError('Please choose an image file.');
+      return;
+    }
+    try {
+      const resized = await resizeImageToDataUrl(file, 256);
+      setAvatarUrl(resized);
+    } catch {
+      setAvatarError('Could not read that image.');
+    }
+  }
 
   const [newEmail, setNewEmail] = useState(user.email);
   const [emailPassword, setEmailPassword] = useState('');
@@ -38,6 +83,7 @@ export default function AccountSettings({ user, onUpdate, onClose, onAccountDele
       const { user: updated } = await api.updateAccount({
         displayName: displayName.trim(),
         avatarColor,
+        avatarUrl,
         bio: bio.trim(),
         theme,
         itemSort,
@@ -119,6 +165,31 @@ export default function AccountSettings({ user, onUpdate, onClose, onAccountDele
               placeholder={user.email}
               maxLength={60}
             />
+          </div>
+
+          <div className="form-field">
+            <label>Profile picture</label>
+            <div className="avatar-upload-row">
+              <div className="avatar-preview" style={{ background: avatarColor }}>
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="" />
+                ) : (
+                  (displayName || user.email || '?').trim().charAt(0).toUpperCase()
+                )}
+              </div>
+              <div className="avatar-upload-actions">
+                <label className="btn-ghost avatar-upload-btn">
+                  Upload photo
+                  <input type="file" accept="image/*" onChange={handleAvatarFile} hidden />
+                </label>
+                {avatarUrl && (
+                  <button type="button" className="btn-ghost" onClick={() => setAvatarUrl('')}>
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+            {avatarError && <p className="form-error">{avatarError}</p>}
           </div>
 
           <div className="form-field">
