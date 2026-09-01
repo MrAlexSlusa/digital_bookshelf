@@ -63,10 +63,14 @@ export async function initDb() {
       facts JSONB NOT NULL DEFAULT '[]',
       tags JSONB NOT NULL DEFAULT '[]',
       cover_url TEXT,
+      franchise TEXT,
+      watched BOOLEAN NOT NULL DEFAULT true,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
 
     ALTER TABLE items ADD COLUMN IF NOT EXISTS cover_url TEXT;
+    ALTER TABLE items ADD COLUMN IF NOT EXISTS franchise TEXT;
+    ALTER TABLE items ADD COLUMN IF NOT EXISTS watched BOOLEAN NOT NULL DEFAULT true;
 
     CREATE INDEX IF NOT EXISTS items_user_category_idx ON items(user_id, category, created_at);
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api.js';
 import { CATEGORY_META, CATEGORY_ORDER, sectionsFor } from './constants.js';
+import { clusterFranchises } from './franchiseStacks.js';
 import { useTheme } from './useTheme.js';
 
 function textOf(item) {
@@ -32,7 +33,8 @@ function groupByCategory(items, itemSort) {
     if (grouped[item.category]) grouped[item.category].push(item);
   }
   for (const key of CATEGORY_ORDER) {
-    grouped[key] = sortItems(grouped[key], itemSort);
+    const sorted = sortItems(grouped[key], itemSort);
+    grouped[key] = key === 'movies' ? clusterFranchises(sorted) : sorted;
   }
   return grouped;
 }
@@ -63,6 +65,7 @@ export function useShelf(user) {
   const lengthRef = useRef(0);
   const secCountRef = useRef(4);
   const groupedRef = useRef({});
+  const activeItemRef = useRef(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -108,6 +111,9 @@ export function useShelf(user) {
   useEffect(() => {
     groupedRef.current = grouped;
   }, [grouped]);
+  useEffect(() => {
+    activeItemRef.current = activeItem;
+  }, [activeItem]);
 
   useEffect(
     () => () => {
@@ -137,6 +143,8 @@ export function useShelf(user) {
 
   const open = useCallback(() => {
     if (phaseRef.current !== 'shelf' || !lengthRef.current) return;
+    const cur = activeItemRef.current;
+    if (cur?.category === 'movies' && cur?.watched === false) return; // locked — can't open until watched
     setPhase('opening');
     setSec(0);
     clearTimeout(phaseTimer.current);
