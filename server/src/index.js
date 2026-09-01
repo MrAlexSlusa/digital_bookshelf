@@ -35,7 +35,9 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
+// Raised from the 100kb default so a base64-encoded profile picture (see
+// avatarUrl in the account route) fits in the request body.
+app.use(express.json({ limit: '2mb' }));
 
 const PgSession = connectPgSimple(session);
 app.use(

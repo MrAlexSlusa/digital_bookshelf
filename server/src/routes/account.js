@@ -8,6 +8,8 @@ accountRouter.use(requireAuth);
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+const AVATAR_DATA_URL_RE = /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+=*$/;
+const MAX_AVATAR_BYTES = 1_500_000;
 const THEMES = ['dark', 'light'];
 const ITEM_SORTS = ['newest', 'oldest', 'title'];
 
@@ -17,6 +19,7 @@ function publicUser(row) {
     email: row.email,
     displayName: row.display_name,
     avatarColor: row.avatar_color,
+    avatarUrl: row.avatar_url,
     bio: row.bio,
     theme: row.theme,
     itemSort: row.item_sort,
@@ -39,6 +42,21 @@ accountRouter.patch('/', async (req, res, next) => {
       return res.status(400).json({ error: 'Avatar colour must be a hex value like #7c6cf5' });
     }
 
+    let avatarUrl = body.avatarUrl !== undefined ? body.avatarUrl : user.avatar_url;
+    if (avatarUrl !== null && avatarUrl !== undefined) {
+      avatarUrl = String(avatarUrl).trim();
+      if (avatarUrl === '') {
+        avatarUrl = null;
+      } else {
+        if (!AVATAR_DATA_URL_RE.test(avatarUrl)) {
+          return res.status(400).json({ error: 'Profile picture must be a PNG, JPEG, WEBP or GIF' });
+        }
+        if (avatarUrl.length > MAX_AVATAR_BYTES) {
+          return res.status(400).json({ error: 'Profile picture is too large (max ~1MB)' });
+        }
+      }
+    }
+
     const bio = body.bio !== undefined ? String(body.bio).trim().slice(0, 280) || null : user.bio;
 
     const theme = body.theme !== undefined ? String(body.theme) : user.theme;
@@ -52,9 +70,9 @@ accountRouter.patch('/', async (req, res, next) => {
     }
 
     const result = await pool.query(
-      `UPDATE users SET display_name = $1, avatar_color = $2, bio = $3, theme = $4, item_sort = $5
-       WHERE id = $6 RETURNING *`,
-      [displayName, avatarColor, bio, theme, itemSort, req.userId]
+      `UPDATE users SET display_name = $1, avatar_color = $2, avatar_url = $3, bio = $4, theme = $5, item_sort = $6
+       WHERE id = $7 RETURNING *`,
+      [displayName, avatarColor, avatarUrl, bio, theme, itemSort, req.userId]
     );
     res.json({ user: publicUser(result.rows[0]) });
   } catch (err) {
