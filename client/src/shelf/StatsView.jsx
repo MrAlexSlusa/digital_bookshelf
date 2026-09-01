@@ -6,38 +6,6 @@ function dayKey(dateStr) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function computeStreaks(days) {
-  if (days.size === 0) return { current: 0, longest: 0 };
-  const sorted = [...days].sort();
-  let longest = 1;
-  let run = 1;
-  for (let i = 1; i < sorted.length; i++) {
-    const prev = new Date(sorted[i - 1]);
-    const cur = new Date(sorted[i]);
-    const diffDays = Math.round((cur - prev) / 86400000);
-    run = diffDays === 1 ? run + 1 : 1;
-    if (run > longest) longest = run;
-  }
-
-  const today = new Date();
-  const todayKey = dayKey(today);
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayKey = dayKey(yesterday);
-
-  let current = 0;
-  if (days.has(todayKey) || days.has(yesterdayKey)) {
-    let cursor = days.has(todayKey) ? today : yesterday;
-    while (days.has(dayKey(cursor))) {
-      current += 1;
-      cursor = new Date(cursor);
-      cursor.setDate(cursor.getDate() - 1);
-    }
-  }
-
-  return { current, longest };
-}
-
 function monthLabel(y, m) {
   return new Date(y, m, 1).toLocaleDateString(undefined, { month: 'short' });
 }
@@ -68,10 +36,9 @@ export default function StatsView({ items, dark, accent, onClose }) {
       const d = new Date(item.created_at);
       if (!firstDate || d < firstDate) firstDate = d;
     }
-    const { current, longest } = computeStreaks(days);
     const months = last6Months(items);
     const maxMonth = Math.max(1, ...months.map((b) => b.count));
-    return { counts, current, longest, firstDate, activeDays: days.size, months, maxMonth };
+    return { counts, firstDate, activeDays: days.size, months, maxMonth };
   }, [items]);
 
   const memberSince = stats.firstDate
@@ -86,15 +53,6 @@ export default function StatsView({ items, dark, accent, onClose }) {
       </button>
 
       <div className="stats-hero">
-        <div className="stats-streak-card">
-          <span className="stats-streak-flame" style={{ color: accent }}>
-            🔥
-          </span>
-          <div>
-            <p className="stats-streak-num">{stats.current}</p>
-            <p className="stats-streak-label">day streak</p>
-          </div>
-        </div>
         <div className="stats-hero-meta">
           <p className="section-label">Account stats</p>
           <p className="stats-since">Member since {memberSince}</p>
@@ -111,10 +69,6 @@ export default function StatsView({ items, dark, accent, onClose }) {
       </div>
 
       <div className="stats-grid stats-grid-secondary">
-        <div className="stats-tile">
-          <p className="stats-tile-num">{stats.longest}</p>
-          <p className="stats-tile-label">Longest streak</p>
-        </div>
         <div className="stats-tile">
           <p className="stats-tile-num">{stats.activeDays}</p>
           <p className="stats-tile-label">Active days</p>
