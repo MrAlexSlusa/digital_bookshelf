@@ -29,6 +29,7 @@ export async function initDb() {
       password_hash TEXT NOT NULL,
       display_name TEXT,
       avatar_color TEXT NOT NULL DEFAULT '#7c6cf5',
+      avatar_url TEXT,
       bio TEXT,
       theme TEXT NOT NULL DEFAULT 'dark' CHECK (theme IN ('dark', 'light')),
       item_sort TEXT NOT NULL DEFAULT 'newest' CHECK (item_sort IN ('newest', 'oldest', 'title')),
@@ -37,6 +38,7 @@ export async function initDb() {
 
     ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_color TEXT NOT NULL DEFAULT '#7c6cf5';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS theme TEXT NOT NULL DEFAULT 'dark';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS item_sort TEXT NOT NULL DEFAULT 'newest';
@@ -63,10 +65,14 @@ export async function initDb() {
       facts JSONB NOT NULL DEFAULT '[]',
       tags JSONB NOT NULL DEFAULT '[]',
       cover_url TEXT,
+      franchise TEXT,
+      watched BOOLEAN NOT NULL DEFAULT true,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
 
     ALTER TABLE items ADD COLUMN IF NOT EXISTS cover_url TEXT;
+    ALTER TABLE items ADD COLUMN IF NOT EXISTS franchise TEXT;
+    ALTER TABLE items ADD COLUMN IF NOT EXISTS watched BOOLEAN NOT NULL DEFAULT true;
 
     CREATE INDEX IF NOT EXISTS items_user_category_idx ON items(user_id, category, created_at);
 

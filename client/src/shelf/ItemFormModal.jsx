@@ -24,6 +24,8 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
   const [verdict, setVerdict] = useState(initial?.verdict || '');
   const [impression, setImpression] = useState(initial?.impression || '');
   const [hue, setHue] = useState(initial?.hue ?? Math.floor(Math.random() * 360));
+  const [franchise, setFranchise] = useState(initial?.franchise || '');
+  const [watched, setWatched] = useState(initial?.watched ?? true);
   const [tagsText, setTagsText] = useState((initial?.tags || []).join(', '));
   const [factRows, setFactRows] = useState(factsToRows(initial?.facts).length ? factsToRows(initial?.facts) : [{ k: '', v: '' }]);
   const [error, setError] = useState(null);
@@ -122,6 +124,8 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
         impression: impression.trim(),
         hue,
         coverUrl: coverUrl.trim(),
+        franchise: category === 'movies' ? franchise.trim() : '',
+        watched: category === 'movies' ? watched : true,
         tags: tagsText
           .split(',')
           .map((t) => t.trim())
@@ -169,6 +173,33 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
             <label htmlFor="item-sub">{subLabelFor(category, t)}</label>
             <input id="item-sub" type="text" value={sub} onChange={(e) => setSub(e.target.value)} />
           </div>
+
+          {category === 'movies' && (
+            <div className="form-grid">
+              <div className="form-field">
+                <label htmlFor="item-franchise">{t('itemForm.franchise')}</label>
+                <input
+                  id="item-franchise"
+                  type="text"
+                  value={franchise}
+                  onChange={(e) => setFranchise(e.target.value)}
+                  placeholder={t('itemForm.franchisePlaceholder')}
+                />
+              </div>
+              <div className="form-field">
+                <label htmlFor="item-watched">{t('itemForm.watchStatus')}</label>
+                <label className="checkbox-row">
+                  <input
+                    id="item-watched"
+                    type="checkbox"
+                    checked={watched}
+                    onChange={(e) => setWatched(e.target.checked)}
+                  />
+                  {t('itemForm.iveWatchedThis')}
+                </label>
+              </div>
+            </div>
+          )}
 
           {coverMeta && (
             <div className="form-field">

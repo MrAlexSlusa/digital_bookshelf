@@ -112,6 +112,10 @@ export default function ShelfApp({ user, onUserUpdate, onSignOut }) {
     shelf.forcePhase('shelf');
   }
 
+  async function handleMarkWatched(target) {
+    await shelf.updateItem(target.id, { watched: true });
+  }
+
   async function handleAddNote(note) {
     if (!item) return;
     await shelf.updateItem(item.id, { notes: [...(item.notes || []), note] });
@@ -208,6 +212,7 @@ export default function ShelfApp({ user, onUserUpdate, onSignOut }) {
                     onDragStart={shelf.onDragStart}
                     onSelect={shelf.selectActive}
                     onOpen={shelf.open}
+                    onMarkWatched={handleMarkWatched}
                   />
                   <SelectionBlock
                     item={item}

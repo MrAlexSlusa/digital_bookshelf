@@ -68,7 +68,7 @@ export default function Header({
           aria-label={t('header.accountSettings')}
           title={user?.displayName || user?.email}
         >
-          {initial}
+          {user?.avatarUrl ? <img src={user.avatarUrl} alt="" /> : initial}
         </button>
         <button type="button" className="pill-btn" onClick={onSignOut}>
           {t('header.signOut')}
