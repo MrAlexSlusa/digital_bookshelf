@@ -10,15 +10,17 @@ import AccountSettings from './AccountSettings.jsx';
 import ImportModal from './ImportModal.jsx';
 import StatsView from './StatsView.jsx';
 import { useShelf } from './useShelf.js';
-import { CATEGORY_META, CATEGORY_ORDER, shapeFor } from './constants.js';
+import { CATEGORY_ORDER, categoryMetaFor, shapeFor } from './constants.js';
 import { accentColors, washColors, washStyle } from './styles.js';
 import { useCoverPalette } from './useCoverPalette.js';
 import { api } from '../api.js';
+import { useI18n } from '../i18n/I18nContext.jsx';
 
 const MOTION = 1;
 const GLOW = 1;
 
 export default function ShelfApp({ user, onUserUpdate, onSignOut }) {
+  const { t } = useI18n();
   const shelf = useShelf(user);
   const [modal, setModal] = useState(null); // null | { mode: 'create' | 'edit', item? }
   const [friendsOpen, setFriendsOpen] = useState(false);
@@ -70,7 +72,7 @@ export default function ShelfApp({ user, onUserUpdate, onSignOut }) {
   }
 
   const dark = shelf.theme === 'dark';
-  const categoryMeta = CATEGORY_META[shelf.categoryKey];
+  const categoryMeta = categoryMetaFor(shelf.categoryKey, t);
   const shape = shapeFor(shelf.categoryKey);
   const item = shelf.activeItem;
   const palette = useCoverPalette(item?.coverUrl, item?.hue ?? 200);
@@ -105,7 +107,7 @@ export default function ShelfApp({ user, onUserUpdate, onSignOut }) {
 
   async function handleDelete() {
     if (!item) return;
-    if (!window.confirm(`Delete "${item.title}"? This can't be undone.`)) return;
+    if (!window.confirm(t('shelf.deleteConfirm', { title: item.title }))) return;
     await shelf.deleteItem(item.id);
     shelf.forcePhase('shelf');
   }
@@ -165,16 +167,16 @@ export default function ShelfApp({ user, onUserUpdate, onSignOut }) {
 
           {shelf.loading && (
             <div className="empty-state">
-              <p className="empty-title">Loading your shelf…</p>
+              <p className="empty-title">{t('shelf.loadingShelf')}</p>
             </div>
           )}
 
           {!shelf.loading && shelf.loadError && (
             <div className="empty-state">
-              <p className="empty-title">Couldn&rsquo;t load your shelf</p>
+              <p className="empty-title">{t('shelf.loadError')}</p>
               <p className="empty-sub">{shelf.loadError}</p>
               <button type="button" className="btn-pill" onClick={shelf.reload}>
-                Try again
+                {t('shelf.tryAgain')}
               </button>
             </div>
           )}
@@ -188,10 +190,10 @@ export default function ShelfApp({ user, onUserUpdate, onSignOut }) {
 
               {n === 0 ? (
                 <div className="empty-state">
-                  <p className="empty-title">Nothing here yet</p>
-                  <p className="empty-sub">Add your first {categoryMeta.singular} to start this shelf.</p>
+                  <p className="empty-title">{t('shelf.nothingHere')}</p>
+                  <p className="empty-sub">{t('shelf.addFirst', { singular: categoryMeta.singular })}</p>
                   <button type="button" className="btn-pill" onClick={openCreateModal}>
-                    + Add {categoryMeta.singular}
+                    {t('shelf.addSingular', { singular: categoryMeta.singular })}
                   </button>
                 </div>
               ) : (

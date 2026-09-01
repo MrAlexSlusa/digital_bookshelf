@@ -1,6 +1,9 @@
+import { useI18n } from '../i18n/I18nContext.jsx';
+
 // The content painted onto a card's face — split out of Card.jsx so
 // CardStack.jsx (franchise stacks) can reuse the exact same markup per item.
 export default function CardFace({ item, shape, locked, onMarkWatched }) {
+  const { t } = useI18n();
   return (
     <>
       <div className="card-texture" />
@@ -51,7 +54,7 @@ export default function CardFace({ item, shape, locked, onMarkWatched }) {
       {locked && (
         <div className="card-lock-overlay">
           <span className="card-lock-icon" aria-hidden="true">🔒</span>
-          <span className="card-lock-label">Not watched yet</span>
+          <span className="card-lock-label">{t('itemForm.notWatchedYet')}</span>
           {onMarkWatched && (
             <button
               type="button"
@@ -61,7 +64,7 @@ export default function CardFace({ item, shape, locked, onMarkWatched }) {
                 onMarkWatched(item);
               }}
             >
-              Mark watched
+              {t('itemForm.markWatched')}
             </button>
           )}
         </div>

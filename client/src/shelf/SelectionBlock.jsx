@@ -1,4 +1,7 @@
+import { useI18n } from '../i18n/I18nContext.jsx';
+
 export default function SelectionBlock({ item, verb, accent, items, activeIndex, isQuoteCat, onSelect, onOpen }) {
+  const { t } = useI18n();
   const metaParts = [item.sub, ...(item.facts || []).slice(0, 2).map((f) => f[1])].filter(Boolean);
   const locked = item.category === 'movies' && item.watched === false;
 
@@ -8,7 +11,7 @@ export default function SelectionBlock({ item, verb, accent, items, activeIndex,
         <h2 className="selection-title">{isQuoteCat ? `“${item.title}”` : item.title}</h2>
         <p className="selection-meta">{metaParts.join('  ·  ')}</p>
         <button type="button" className="btn-pill" onClick={onOpen} disabled={locked}>
-          {locked ? '🔒 Not watched yet' : verb}
+          {locked ? `🔒 ${t('itemForm.notWatchedYet')}` : verb}
         </button>
       </div>
       <div className="spine-rail">

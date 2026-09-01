@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../api.js';
+import { useI18n } from '../i18n/I18nContext.jsx';
 
 const AVATAR_COLORS = ['#7c6cf5', '#e0607e', '#e0a83e', '#3ba874', '#3e8ee0', '#e06b3e', '#7e7e7e'];
 
@@ -30,6 +31,7 @@ function resizeImageToDataUrl(file, size) {
 }
 
 export default function AccountSettings({ user, onUpdate, onClose, onAccountDeleted }) {
+  const { t, language, setLanguage, languages } = useI18n();
   const [displayName, setDisplayName] = useState(user.displayName || '');
   const [avatarColor, setAvatarColor] = useState(user.avatarColor || AVATAR_COLORS[0]);
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl || '');
@@ -47,14 +49,14 @@ export default function AccountSettings({ user, onUpdate, onClose, onAccountDele
     if (!file) return;
     setAvatarError(null);
     if (!file.type.startsWith('image/')) {
-      setAvatarError('Please choose an image file.');
+      setAvatarError(t('account.chooseImageFile'));
       return;
     }
     try {
       const resized = await resizeImageToDataUrl(file, 256);
       setAvatarUrl(resized);
     } catch {
-      setAvatarError('Could not read that image.');
+      setAvatarError(t('account.couldNotReadImage'));
     }
   }
 
@@ -133,7 +135,7 @@ export default function AccountSettings({ user, onUpdate, onClose, onAccountDele
 
   async function handleDeleteSubmit(e) {
     e.preventDefault();
-    if (!window.confirm('Delete your account? This permanently removes everything on your shelf and cannot be undone.')) {
+    if (!window.confirm(t('account.deleteConfirm'))) {
       return;
     }
     setDeleteError(null);
@@ -150,13 +152,13 @@ export default function AccountSettings({ user, onUpdate, onClose, onAccountDele
   return (
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-panel">
-        <h2 className="modal-title">Account settings</h2>
+        <h2 className="modal-title">{t('account.title')}</h2>
 
         <form onSubmit={handleProfileSubmit}>
-          <h3 className="settings-section-title">Profile</h3>
+          <h3 className="settings-section-title">{t('account.profile')}</h3>
 
           <div className="form-field">
-            <label htmlFor="acct-display-name">Display name</label>
+            <label htmlFor="acct-display-name">{t('account.displayName')}</label>
             <input
               id="acct-display-name"
               type="text"
@@ -168,7 +170,7 @@ export default function AccountSettings({ user, onUpdate, onClose, onAccountDele
           </div>
 
           <div className="form-field">
-            <label>Profile picture</label>
+            <label>{t('account.profilePicture')}</label>
             <div className="avatar-upload-row">
               <div className="avatar-preview" style={{ background: avatarColor }}>
                 {avatarUrl ? (
@@ -179,12 +181,12 @@ export default function AccountSettings({ user, onUpdate, onClose, onAccountDele
               </div>
               <div className="avatar-upload-actions">
                 <label className="btn-ghost avatar-upload-btn">
-                  Upload photo
+                  {t('account.uploadPhoto')}
                   <input type="file" accept="image/*" onChange={handleAvatarFile} hidden />
                 </label>
                 {avatarUrl && (
                   <button type="button" className="btn-ghost" onClick={() => setAvatarUrl('')}>
-                    Remove
+                    {t('common.remove')}
                   </button>
                 )}
               </div>
@@ -193,7 +195,7 @@ export default function AccountSettings({ user, onUpdate, onClose, onAccountDele
           </div>
 
           <div className="form-field">
-            <label>Avatar colour</label>
+            <label>{t('account.avatarColor')}</label>
             <div className="avatar-color-row">
               {AVATAR_COLORS.map((color) => (
                 <button
@@ -209,42 +211,52 @@ export default function AccountSettings({ user, onUpdate, onClose, onAccountDele
           </div>
 
           <div className="form-field">
-            <label htmlFor="acct-bio">Bio</label>
+            <label htmlFor="acct-bio">{t('account.bio')}</label>
             <textarea
               id="acct-bio"
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               maxLength={280}
-              placeholder="A line about your shelf"
+              placeholder={t('account.bioPlaceholder')}
             />
           </div>
 
-          <h3 className="settings-section-title">Preferences</h3>
+          <h3 className="settings-section-title">{t('account.preferences')}</h3>
 
           <div className="form-grid">
             <div className="form-field">
-              <label htmlFor="acct-theme">Theme</label>
+              <label htmlFor="acct-theme">{t('account.theme')}</label>
               <select id="acct-theme" value={theme} onChange={(e) => setTheme(e.target.value)}>
-                <option value="dark">Dark</option>
-                <option value="light">Light</option>
+                <option value="dark">{t('account.themeDark')}</option>
+                <option value="light">{t('account.themeLight')}</option>
               </select>
             </div>
             <div className="form-field">
-              <label htmlFor="acct-sort">Item order</label>
+              <label htmlFor="acct-sort">{t('account.itemOrder')}</label>
               <select id="acct-sort" value={itemSort} onChange={(e) => setItemSort(e.target.value)}>
-                <option value="newest">Newest first</option>
-                <option value="oldest">Oldest first</option>
-                <option value="title">Title, A–Z</option>
+                <option value="newest">{t('account.newestFirst')}</option>
+                <option value="oldest">{t('account.oldestFirst')}</option>
+                <option value="title">{t('account.titleAZ')}</option>
+              </select>
+            </div>
+            <div className="form-field">
+              <label htmlFor="acct-language">{t('account.language')}</label>
+              <select id="acct-language" value={language} onChange={(e) => setLanguage(e.target.value)}>
+                {languages.map((lang) => (
+                  <option key={lang.code} value={lang.code}>
+                    {lang.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
 
           {profileError && <p className="form-error">{profileError}</p>}
-          {profileSaved && <p className="form-success">Saved.</p>}
+          {profileSaved && <p className="form-success">{t('account.saved')}</p>}
 
           <div className="modal-actions">
             <button type="submit" className="btn-pill" disabled={savingProfile}>
-              {savingProfile ? 'Saving…' : 'Save profile'}
+              {savingProfile ? t('account.saving') : t('account.saveProfile')}
             </button>
           </div>
         </form>
@@ -252,13 +264,13 @@ export default function AccountSettings({ user, onUpdate, onClose, onAccountDele
         <hr className="settings-divider" />
 
         <form onSubmit={handleEmailSubmit}>
-          <h3 className="settings-section-title">Change email</h3>
+          <h3 className="settings-section-title">{t('account.changeEmail')}</h3>
           <div className="form-field">
-            <label htmlFor="acct-email">New email</label>
+            <label htmlFor="acct-email">{t('account.newEmail')}</label>
             <input id="acct-email" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} required />
           </div>
           <div className="form-field">
-            <label htmlFor="acct-email-password">Current password</label>
+            <label htmlFor="acct-email-password">{t('account.currentPassword')}</label>
             <input
               id="acct-email-password"
               type="password"
@@ -270,11 +282,11 @@ export default function AccountSettings({ user, onUpdate, onClose, onAccountDele
           </div>
 
           {emailError && <p className="form-error">{emailError}</p>}
-          {emailSaved && <p className="form-success">Email updated.</p>}
+          {emailSaved && <p className="form-success">{t('account.emailUpdated')}</p>}
 
           <div className="modal-actions">
             <button type="submit" className="btn-pill" disabled={savingEmail}>
-              {savingEmail ? 'Saving…' : 'Update email'}
+              {savingEmail ? t('account.saving') : t('account.updateEmail')}
             </button>
           </div>
         </form>
@@ -282,9 +294,9 @@ export default function AccountSettings({ user, onUpdate, onClose, onAccountDele
         <hr className="settings-divider" />
 
         <form onSubmit={handlePasswordSubmit}>
-          <h3 className="settings-section-title">Change password</h3>
+          <h3 className="settings-section-title">{t('account.changePassword')}</h3>
           <div className="form-field">
-            <label htmlFor="acct-current-password">Current password</label>
+            <label htmlFor="acct-current-password">{t('account.currentPassword')}</label>
             <input
               id="acct-current-password"
               type="password"
@@ -295,7 +307,7 @@ export default function AccountSettings({ user, onUpdate, onClose, onAccountDele
             />
           </div>
           <div className="form-field">
-            <label htmlFor="acct-new-password">New password</label>
+            <label htmlFor="acct-new-password">{t('account.newPassword')}</label>
             <input
               id="acct-new-password"
               type="password"
@@ -308,11 +320,11 @@ export default function AccountSettings({ user, onUpdate, onClose, onAccountDele
           </div>
 
           {passwordError && <p className="form-error">{passwordError}</p>}
-          {passwordSaved && <p className="form-success">Password updated.</p>}
+          {passwordSaved && <p className="form-success">{t('account.passwordUpdated')}</p>}
 
           <div className="modal-actions">
             <button type="submit" className="btn-pill" disabled={savingPassword}>
-              {savingPassword ? 'Saving…' : 'Update password'}
+              {savingPassword ? t('account.saving') : t('account.updatePassword')}
             </button>
           </div>
         </form>
@@ -320,12 +332,10 @@ export default function AccountSettings({ user, onUpdate, onClose, onAccountDele
         <hr className="settings-divider" />
 
         <form onSubmit={handleDeleteSubmit}>
-          <h3 className="settings-section-title danger">Delete account</h3>
-          <p className="settings-danger-note">
-            Permanently deletes your account and everything on your shelf. This can&rsquo;t be undone.
-          </p>
+          <h3 className="settings-section-title danger">{t('account.deleteAccount')}</h3>
+          <p className="settings-danger-note">{t('account.deleteWarning')}</p>
           <div className="form-field">
-            <label htmlFor="acct-delete-password">Current password</label>
+            <label htmlFor="acct-delete-password">{t('account.currentPassword')}</label>
             <input
               id="acct-delete-password"
               type="password"
@@ -340,10 +350,10 @@ export default function AccountSettings({ user, onUpdate, onClose, onAccountDele
 
           <div className="modal-actions">
             <button type="button" className="btn-ghost" onClick={onClose}>
-              Close
+              {t('account.close')}
             </button>
             <button type="submit" className="btn-pill btn-danger" disabled={deleting}>
-              {deleting ? 'Deleting…' : 'Delete account'}
+              {deleting ? t('account.deleting') : t('account.deleteAccount')}
             </button>
           </div>
         </form>
