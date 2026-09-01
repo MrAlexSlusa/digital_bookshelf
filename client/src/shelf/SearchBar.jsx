@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { subLabelFor } from './constants.js';
+import { useI18n } from '../i18n/I18nContext.jsx';
 
 export default function SearchBar({ query, setQuery, results, onJump }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [hi, setHi] = useState(0);
   const rootRef = useRef(null);
@@ -45,7 +47,7 @@ export default function SearchBar({ query, setQuery, results, onJump }) {
       <input
         type="text"
         className="search-input"
-        placeholder="Search everything…"
+        placeholder={t('search.placeholder')}
         value={query}
         onChange={(e) => {
           setQuery(e.target.value);
@@ -55,14 +57,14 @@ export default function SearchBar({ query, setQuery, results, onJump }) {
         onKeyDown={onKeyDown}
       />
       {query && (
-        <button type="button" className="search-clear" aria-label="Clear search" onClick={() => setQuery('')}>
+        <button type="button" className="search-clear" aria-label={t('search.clear')} onClick={() => setQuery('')}>
           ×
         </button>
       )}
       {showDropdown && (
         <div className="search-dropdown">
           {results.length === 0 ? (
-            <div className="search-empty">No matches for &ldquo;{query}&rdquo;</div>
+            <div className="search-empty">{t('search.noMatches', { query })}</div>
           ) : (
             results.map((r, i) => (
               <button
@@ -75,7 +77,7 @@ export default function SearchBar({ query, setQuery, results, onJump }) {
                 <span className="search-result-title">{r.item.title}</span>
                 <span className="search-result-meta">
                   {r.categoryLabel}
-                  {r.item.sub ? ` · ${subLabelFor(r.item.category)}: ${r.item.sub}` : ''}
+                  {r.item.sub ? ` · ${subLabelFor(r.item.category, t)}: ${r.item.sub}` : ''}
                 </span>
               </button>
             ))

@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../api.js';
+import { useI18n } from '../i18n/I18nContext.jsx';
 
 const POLL_MS = 4000;
 
 function ChatThread({ friend, myUserId, onMessagesRead }) {
+  const { t, language } = useI18n();
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
   const [error, setError] = useState(null);
@@ -63,13 +65,13 @@ function ChatThread({ friend, myUserId, onMessagesRead }) {
         <span className="chat-thread-title">{friend.email}</span>
       </div>
       <div className="chat-messages" ref={listRef}>
-        {messages.length === 0 && <p className="chat-empty">Say hello to start the conversation.</p>}
+        {messages.length === 0 && <p className="chat-empty">{t('friends.sayHello')}</p>}
         {messages.map((m) => (
           <div key={m.id} className={`chat-bubble-row ${m.senderId === myUserId ? 'mine' : 'theirs'}`}>
             <div className="chat-bubble">
               <p className="chat-bubble-text">{m.content}</p>
               <span className="chat-bubble-time">
-                {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {new Date(m.createdAt).toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
           </div>
@@ -82,11 +84,11 @@ function ChatThread({ friend, myUserId, onMessagesRead }) {
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Write a message…"
+          placeholder={t('friends.writeMessage')}
           maxLength={4000}
         />
         <button type="submit" className="btn-ghost" disabled={sending || !text.trim()}>
-          Send
+          {t('friends.send')}
         </button>
       </form>
     </div>
@@ -94,6 +96,7 @@ function ChatThread({ friend, myUserId, onMessagesRead }) {
 }
 
 export default function FriendsPanel({ myUserId, onClose }) {
+  const { t } = useI18n();
   const [tab, setTab] = useState('friends'); // friends | requests | add
   const [friends, setFriends] = useState([]);
   const [requests, setRequests] = useState([]);
@@ -151,7 +154,7 @@ export default function FriendsPanel({ myUserId, onClose }) {
     setAddStatus(null);
     try {
       await api.addFriend(email);
-      setAddStatus({ ok: true, message: `Friend request sent to ${email}.` });
+      setAddStatus({ ok: true, message: t('friends.requestSent', { email }) });
       setAddEmail('');
       loadAll();
     } catch (err) {
@@ -174,7 +177,7 @@ export default function FriendsPanel({ myUserId, onClose }) {
     loadAll();
   }
   async function handleRemoveFriend(friend) {
-    if (!window.confirm(`Remove ${friend.email} from your friends?`)) return;
+    if (!window.confirm(t('friends.removeConfirm', { email: friend.email }))) return;
     await api.removeFriend(friend.friendshipId);
     if (activeFriend?.id === friend.id) setActiveFriend(null);
     loadAll();
@@ -186,21 +189,21 @@ export default function FriendsPanel({ myUserId, onClose }) {
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-panel friends-panel">
         <div className="friends-panel-header">
-          <h2 className="modal-title">Friends</h2>
-          <button type="button" className="icon-remove" onClick={onClose} aria-label="Close">
+          <h2 className="modal-title">{t('friends.title')}</h2>
+          <button type="button" className="icon-remove" onClick={onClose} aria-label={t('friends.close')}>
             ×
           </button>
         </div>
 
         <div className="friends-tabs">
           <button type="button" className={`link-btn tab-btn ${tab === 'friends' ? 'active' : ''}`} onClick={() => setTab('friends')}>
-            Friends ({friends.length})
+            {t('friends.tabFriends', { count: friends.length })}
           </button>
           <button type="button" className={`link-btn tab-btn ${tab === 'requests' ? 'active' : ''}`} onClick={() => setTab('requests')}>
-            Requests {requestCount > 0 ? `(${requestCount})` : ''}
+            {t('friends.tabRequests')} {requestCount > 0 ? `(${requestCount})` : ''}
           </button>
           <button type="button" className={`link-btn tab-btn ${tab === 'add' ? 'active' : ''}`} onClick={() => setTab('add')}>
-            Add friend
+            {t('friends.tabAdd')}
           </button>
         </div>
 
@@ -210,7 +213,7 @@ export default function FriendsPanel({ myUserId, onClose }) {
           {activeFriend ? (
             <div className="friends-chat-wrap">
               <button type="button" className="link-btn" onClick={() => setActiveFriend(null)}>
-                ← Back to friends
+                {t('friends.backToFriends')}
               </button>
               <ChatThread friend={activeFriend} myUserId={myUserId} onMessagesRead={markRead} />
             </div>
@@ -218,9 +221,9 @@ export default function FriendsPanel({ myUserId, onClose }) {
             <>
               {tab === 'friends' && (
                 <div className="friend-list">
-                  {loading && <p className="chat-empty">Loading…</p>}
+                  {loading && <p className="chat-empty">{t('friends.loading')}</p>}
                   {!loading && friends.length === 0 && (
-                    <p className="chat-empty">No friends yet — add one to start chatting.</p>
+                    <p className="chat-empty">{t('friends.noFriends')}</p>
                   )}
                   {friends.map((f) => (
                     <div key={f.id} className="friend-row">
@@ -228,7 +231,7 @@ export default function FriendsPanel({ myUserId, onClose }) {
                         <span>{f.email}</span>
                         {unread[f.id] > 0 && <span className="unread-badge">{unread[f.id]}</span>}
                       </button>
-                      <button type="button" className="icon-remove" title="Remove friend" onClick={() => handleRemoveFriend(f)}>
+                      <button type="button" className="icon-remove" title={t('friends.removeFriend')} onClick={() => handleRemoveFriend(f)}>
                         ×
                       </button>
                     </div>
@@ -239,16 +242,16 @@ export default function FriendsPanel({ myUserId, onClose }) {
               {tab === 'requests' && (
                 <div className="friend-list">
                   {requests.length === 0 && sent.length === 0 && (
-                    <p className="chat-empty">No pending requests.</p>
+                    <p className="chat-empty">{t('friends.noPending')}</p>
                   )}
                   {requests.map((r) => (
                     <div key={r.friendshipId} className="friend-row">
                       <span className="friend-row-main">{r.email}</span>
                       <div className="friend-row-actions">
                         <button type="button" className="btn-ghost" onClick={() => handleAccept(r.friendshipId)}>
-                          Accept
+                          {t('friends.accept')}
                         </button>
-                        <button type="button" className="icon-remove" title="Decline" onClick={() => handleDecline(r.friendshipId)}>
+                        <button type="button" className="icon-remove" title={t('friends.decline')} onClick={() => handleDecline(r.friendshipId)}>
                           ×
                         </button>
                       </div>
@@ -256,8 +259,8 @@ export default function FriendsPanel({ myUserId, onClose }) {
                   ))}
                   {sent.map((r) => (
                     <div key={r.friendshipId} className="friend-row">
-                      <span className="friend-row-main dim">{r.email} · pending</span>
-                      <button type="button" className="icon-remove" title="Cancel request" onClick={() => handleCancelSent(r.friendshipId)}>
+                      <span className="friend-row-main dim">{r.email} · {t('friends.pending')}</span>
+                      <button type="button" className="icon-remove" title={t('friends.cancelRequest')} onClick={() => handleCancelSent(r.friendshipId)}>
                         ×
                       </button>
                     </div>
@@ -267,20 +270,20 @@ export default function FriendsPanel({ myUserId, onClose }) {
 
               {tab === 'add' && (
                 <form className="form-field" onSubmit={handleAddFriend}>
-                  <label htmlFor="friend-email">Friend&rsquo;s email</label>
+                  <label htmlFor="friend-email">{t('friends.emailLabel')}</label>
                   <input
                     id="friend-email"
                     type="text"
                     value={addEmail}
                     onChange={(e) => setAddEmail(e.target.value)}
-                    placeholder="friend@example.com"
+                    placeholder={t('friends.emailPlaceholder')}
                   />
                   {addStatus && (
                     <p className={addStatus.ok ? 'chat-empty' : 'form-error'}>{addStatus.message}</p>
                   )}
                   <div className="modal-actions">
                     <button type="submit" className="btn-ghost" disabled={addBusy || !addEmail.trim()}>
-                      Send request
+                      {t('friends.sendRequest')}
                     </button>
                   </div>
                 </form>

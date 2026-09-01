@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api.js';
-import { CATEGORY_META, CATEGORY_ORDER, sectionsFor } from './constants.js';
+import { CATEGORY_ORDER, categoryMetaFor, sectionsFor } from './constants.js';
 import { useTheme } from './useTheme.js';
+import { useI18n } from '../i18n/I18nContext.jsx';
 
 function textOf(item) {
   return [
@@ -38,6 +39,7 @@ function groupByCategory(items, itemSort) {
 }
 
 export function useShelf(user) {
+  const { t } = useI18n();
   const { theme, setTheme, toggleTheme } = useTheme(user?.theme);
 
   const [items, setItems] = useState([]);
@@ -93,8 +95,8 @@ export function useShelf(user) {
     return items
       .filter((it) => textOf(it).includes(q))
       .slice(0, 20)
-      .map((it) => ({ item: it, categoryLabel: CATEGORY_META[it.category]?.label || it.category }));
-  }, [items, query]);
+      .map((it) => ({ item: it, categoryLabel: categoryMetaFor(it.category, t).label || it.category }));
+  }, [items, query, t]);
 
   useEffect(() => {
     phaseRef.current = phase;
@@ -103,8 +105,8 @@ export function useShelf(user) {
     lengthRef.current = categoryItems.length;
   }, [categoryItems.length]);
   useEffect(() => {
-    secCountRef.current = sectionsFor(categoryKey).length;
-  }, [categoryKey]);
+    secCountRef.current = sectionsFor(categoryKey, t).length;
+  }, [categoryKey, t]);
   useEffect(() => {
     groupedRef.current = grouped;
   }, [grouped]);

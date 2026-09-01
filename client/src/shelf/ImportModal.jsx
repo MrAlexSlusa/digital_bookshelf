@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { CATEGORY_META, CATEGORY_ORDER } from './constants.js';
+import { CATEGORY_ORDER } from './constants.js';
 import { parseImportText } from './importRules.js';
+import { useI18n } from '../i18n/I18nContext.jsx';
 
 export default function ImportModal({ onImport, onCancel }) {
+  const { t } = useI18n();
   const [text, setText] = useState('');
   const [rows, setRows] = useState(null); // null until previewed
   const [error, setError] = useState(null);
@@ -11,7 +13,7 @@ export default function ImportModal({ onImport, onCancel }) {
   function handlePreview() {
     const parsed = parseImportText(text).map((row, id) => ({ id, ...row }));
     if (!parsed.length) {
-      setError('Paste at least one line first');
+      setError(t('import.pasteFirst'));
       return;
     }
     setError(null);
@@ -40,18 +42,17 @@ export default function ImportModal({ onImport, onCancel }) {
   return (
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
       <div className="modal-panel">
-        <h2 className="modal-title">Import a list</h2>
+        <h2 className="modal-title">{t('import.title')}</h2>
 
         {error && <p className="form-error">{error}</p>}
 
         {rows === null ? (
           <>
             <p className="empty-sub" style={{ marginBottom: 12 }}>
-              Paste one book, movie, article or quote per line. We'll guess the category — you can
-              fix it before anything is added.
+              {t('import.pasteHint')}
             </p>
             <div className="form-field">
-              <label htmlFor="import-text">Your list</label>
+              <label htmlFor="import-text">{t('import.yourList')}</label>
               <textarea
                 id="import-text"
                 rows={10}
@@ -63,21 +64,21 @@ export default function ImportModal({ onImport, onCancel }) {
               />
             </div>
             <p className="empty-sub" style={{ fontSize: 12 }}>
-              Tip: force a category with a prefix, e.g. <code>[movie] The Matrix (1999)</code>.
+              {t('import.tipPrefix')} <code>[movie] The Matrix (1999)</code>.
             </p>
             <div className="modal-actions">
               <button type="button" className="btn-ghost" onClick={onCancel}>
-                Cancel
+                {t('common.cancel')}
               </button>
               <button type="button" className="btn-pill" onClick={handlePreview}>
-                Preview
+                {t('import.preview')}
               </button>
             </div>
           </>
         ) : (
           <>
             <p className="empty-sub" style={{ marginBottom: 12 }}>
-              {rows.length} item{rows.length === 1 ? '' : 's'} detected. Adjust anything that looks wrong, then import.
+              {t('import.detected', { count: rows.length, itemWord: t(rows.length === 1 ? 'import.item' : 'import.items') })}
             </p>
             <div className="import-preview-list">
               {rows.map((row) => (
@@ -85,7 +86,7 @@ export default function ImportModal({ onImport, onCancel }) {
                   <select value={row.category} onChange={(e) => updateRow(row.id, 'category', e.target.value)}>
                     {CATEGORY_ORDER.map((key) => (
                       <option key={key} value={key}>
-                        {CATEGORY_META[key].label}
+                        {t(`category.${key}`)}
                       </option>
                     ))}
                   </select>
@@ -93,34 +94,36 @@ export default function ImportModal({ onImport, onCancel }) {
                     type="text"
                     value={row.title}
                     onChange={(e) => updateRow(row.id, 'title', e.target.value)}
-                    placeholder="Title"
+                    placeholder={t('import.titlePlaceholder')}
                   />
                   <input
                     type="text"
                     value={row.sub}
                     onChange={(e) => updateRow(row.id, 'sub', e.target.value)}
-                    placeholder="Author / director / attribution"
+                    placeholder={t('import.subPlaceholder')}
                   />
                   <input
                     type="text"
                     value={row.year}
                     onChange={(e) => updateRow(row.id, 'year', e.target.value)}
-                    placeholder="Year"
+                    placeholder={t('import.yearPlaceholder')}
                     className="import-year-input"
                   />
-                  <button type="button" className="icon-remove" onClick={() => removeRow(row.id)} aria-label="Remove">
+                  <button type="button" className="icon-remove" onClick={() => removeRow(row.id)} aria-label={t('common.remove')}>
                     ×
                   </button>
                 </div>
               ))}
-              {!rows.length && <p className="empty-sub">Nothing left to import.</p>}
+              {!rows.length && <p className="empty-sub">{t('import.nothingLeft')}</p>}
             </div>
             <div className="modal-actions">
               <button type="button" className="btn-ghost" onClick={() => setRows(null)} disabled={submitting}>
-                Back
+                {t('import.back')}
               </button>
               <button type="button" className="btn-pill" onClick={handleImport} disabled={submitting || !rows.length}>
-                {submitting ? 'Importing…' : `Import ${rows.length} item${rows.length === 1 ? '' : 's'}`}
+                {submitting
+                  ? t('import.importing')
+                  : t('import.importCount', { count: rows.length, itemWord: t(rows.length === 1 ? 'import.item' : 'import.items') })}
               </button>
             </div>
           </>

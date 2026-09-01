@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import HeroStage from './HeroStage.jsx';
-import { sectionsFor } from './constants.js';
+import { sectionKeysFor, sectionsFor } from './constants.js';
+import { useI18n } from '../i18n/I18nContext.jsx';
 
 function starsFor(rating) {
   const r = Math.max(0, Math.min(5, rating || 0));
@@ -8,6 +9,7 @@ function starsFor(rating) {
 }
 
 function NoteForm({ onSubmit, onCancel }) {
+  const { t } = useI18n();
   const [when, setWhen] = useState('');
   const [at, setAt] = useState('');
   const [text, setText] = useState('');
@@ -20,15 +22,15 @@ function NoteForm({ onSubmit, onCancel }) {
         onSubmit({ when: when.trim(), at: at.trim(), text: text.trim() });
       }}
     >
-      <input placeholder="Date, e.g. 12 Mar" value={when} onChange={(e) => setWhen(e.target.value)} />
-      <input placeholder="Where, e.g. p.64 or 1:12:00" value={at} onChange={(e) => setAt(e.target.value)} />
-      <textarea placeholder="What you noted" value={text} onChange={(e) => setText(e.target.value)} required />
+      <input placeholder={t('detail.dateExample')} value={when} onChange={(e) => setWhen(e.target.value)} />
+      <input placeholder={t('detail.whereExample')} value={at} onChange={(e) => setAt(e.target.value)} />
+      <textarea placeholder={t('detail.whatNoted')} value={text} onChange={(e) => setText(e.target.value)} required />
       <div className="inline-add-actions">
         <button type="submit" className="btn-pill">
-          Save note
+          {t('detail.saveNote')}
         </button>
         <button type="button" className="link-btn" onClick={onCancel}>
-          Cancel
+          {t('common.cancel')}
         </button>
       </div>
     </form>
@@ -36,6 +38,7 @@ function NoteForm({ onSubmit, onCancel }) {
 }
 
 function KeepForm({ onSubmit, onCancel }) {
+  const { t } = useI18n();
   const [text, setText] = useState('');
   const [at, setAt] = useState('');
   return (
@@ -47,14 +50,14 @@ function KeepForm({ onSubmit, onCancel }) {
         onSubmit({ text: text.trim(), at: at.trim() });
       }}
     >
-      <textarea placeholder="The line itself" value={text} onChange={(e) => setText(e.target.value)} required />
-      <input placeholder="Citation, e.g. Page 233 or Scene: the room" value={at} onChange={(e) => setAt(e.target.value)} />
+      <textarea placeholder={t('detail.theLineItself')} value={text} onChange={(e) => setText(e.target.value)} required />
+      <input placeholder={t('detail.citationExample')} value={at} onChange={(e) => setAt(e.target.value)} />
       <div className="inline-add-actions">
         <button type="submit" className="btn-pill">
-          Keep it
+          {t('detail.keepIt')}
         </button>
         <button type="button" className="link-btn" onClick={onCancel}>
-          Cancel
+          {t('common.cancel')}
         </button>
       </div>
     </form>
@@ -87,24 +90,28 @@ export default function DetailView({
   onAddKeep,
   onRemoveKeep,
 }) {
+  const { t } = useI18n();
   const [addingNote, setAddingNote] = useState(false);
   const [addingKeep, setAddingKeep] = useState(false);
 
-  const sections = sectionsFor(category);
-  const label = sections[Math.min(sec, sections.length - 1)];
+  const sectionKeys = sectionKeysFor(category);
+  const sections = sectionsFor(category, t);
+  const sec2 = Math.min(sec, sectionKeys.length - 1);
+  const label = sections[sec2];
+  const sectionKey = sectionKeys[sec2];
   const showImpression = sec === 0;
-  const showNotes = label === 'My notes';
-  const showDetails = label === 'Details';
-  const showKeeps = label !== 'My notes' && label !== 'Details' && sec !== 0;
+  const showNotes = sectionKey === 'notes';
+  const showDetails = sectionKey === 'details';
+  const showKeeps = sectionKey === 'keep';
 
   const isQuoteCat = category === 'quotes';
   const notes = item.notes || [];
   const keeps = item.keeps || [];
   const facts = [
     ...(item.facts || []),
-    ['Notes kept', String(notes.length)],
-    ['Lines kept', String(keeps.length)],
-    ['Category', categoryMeta.label],
+    [t('detail.notesKept'), String(notes.length)],
+    [t('detail.linesKept'), String(keeps.length)],
+    [t('detail.category'), categoryMeta.label],
   ];
 
   return (
@@ -118,10 +125,10 @@ export default function DetailView({
 
           <div className="detail-actions">
             <button type="button" className="text-link-btn" onClick={onEdit}>
-              Edit
+              {t('detail.edit')}
             </button>
             <button type="button" className="text-link-btn danger" onClick={onDelete}>
-              Delete
+              {t('detail.delete')}
             </button>
           </div>
 
@@ -141,12 +148,12 @@ export default function DetailView({
 
           {showImpression && (
             <div key="impression" className="section-body">
-              <p className="impression-text">{item.impression || 'Nothing written yet — add your impressions from Edit.'}</p>
+              <p className="impression-text">{item.impression || t('detail.noImpression')}</p>
               <div className="impression-meta">
                 <span className="stars" style={{ color: accent }}>
                   {starsFor(item.rating)}
                 </span>
-                <span className="verdict">{item.verdict || 'No verdict yet'}</span>
+                <span className="verdict">{item.verdict || t('detail.noVerdict')}</span>
               </div>
             </div>
           )}
@@ -155,7 +162,7 @@ export default function DetailView({
             <div key="notes" className="section-body notes-col">
               <div className="section-toolbar">
                 <button type="button" className="link-btn" onClick={() => setAddingNote((v) => !v)}>
-                  {addingNote ? 'Cancel' : '+ Add note'}
+                  {addingNote ? t('common.cancel') : t('detail.addNote')}
                 </button>
               </div>
               {addingNote && (
@@ -167,7 +174,7 @@ export default function DetailView({
                   onCancel={() => setAddingNote(false)}
                 />
               )}
-              {notes.length === 0 && !addingNote && <p className="empty-section-hint">No notes yet.</p>}
+              {notes.length === 0 && !addingNote && <p className="empty-section-hint">{t('detail.noNotes')}</p>}
               {notes.map((n, idx) => (
                 <div className="note-row" key={idx}>
                   <p className="note-meta">
@@ -176,7 +183,7 @@ export default function DetailView({
                       {n.when && n.at ? '  ·  ' : ''}
                       {n.at}
                     </span>
-                    <button type="button" className="icon-remove" title="Remove note" onClick={() => onRemoveNote(idx)}>
+                    <button type="button" className="icon-remove" title={t('detail.removeNote')} onClick={() => onRemoveNote(idx)}>
                       ×
                     </button>
                   </p>
@@ -190,7 +197,7 @@ export default function DetailView({
             <div key="keeps" className="section-body keeps-col">
               <div className="section-toolbar">
                 <button type="button" className="link-btn" onClick={() => setAddingKeep((v) => !v)}>
-                  {addingKeep ? 'Cancel' : '+ Add kept line'}
+                  {addingKeep ? t('common.cancel') : t('detail.addKeep')}
                 </button>
               </div>
               {addingKeep && (
@@ -202,13 +209,13 @@ export default function DetailView({
                   onCancel={() => setAddingKeep(false)}
                 />
               )}
-              {keeps.length === 0 && !addingKeep && <p className="empty-section-hint">Nothing kept yet.</p>}
+              {keeps.length === 0 && !addingKeep && <p className="empty-section-hint">{t('detail.noKeeps')}</p>}
               {keeps.map((k, idx) => (
                 <div className="keep-block" style={{ borderColor: accent }} key={idx}>
                   <p className="keep-text">“{k.text}”</p>
                   <p className="keep-at">
                     <span>{k.at}</span>
-                    <button type="button" className="icon-remove" title="Remove" onClick={() => onRemoveKeep(idx)}>
+                    <button type="button" className="icon-remove" title={t('common.remove')} onClick={() => onRemoveKeep(idx)}>
                       ×
                     </button>
                   </p>
@@ -229,9 +236,9 @@ export default function DetailView({
               </div>
               {item.tags?.length > 0 && (
                 <div className="tags-row">
-                  {item.tags.map((t, idx) => (
+                  {item.tags.map((t2, idx) => (
                     <span className="tag-pill" key={idx}>
-                      {t}
+                      {t2}
                     </span>
                   ))}
                 </div>
@@ -250,7 +257,7 @@ export default function DetailView({
           py={py}
           accent={accent}
           accentGlow={accentGlow}
-          firstKeepLabel={categoryMeta.keepLabel || 'Kept because'}
+          firstKeepLabel={categoryMeta.keepLabel || t('detail.keepBecause')}
           sections={sections}
           sec={sec}
           onDotClick={setSec}
@@ -258,10 +265,10 @@ export default function DetailView({
       </main>
 
       <div className="nav-buttons">
-        <button type="button" className="nav-btn" onClick={onPrev} aria-label="Previous">
+        <button type="button" className="nav-btn" onClick={onPrev} aria-label={t('common.previous')}>
           ←
         </button>
-        <button type="button" className="nav-btn" onClick={onNext} aria-label="Next">
+        <button type="button" className="nav-btn" onClick={onNext} aria-label={t('common.next')}>
           →
         </button>
         <span className="nav-pos-label">{posLabel}</span>

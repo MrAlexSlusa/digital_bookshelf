@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { CATEGORY_META, CATEGORY_ORDER } from './constants.js';
+import { CATEGORY_ORDER } from './constants.js';
+import { useI18n } from '../i18n/I18nContext.jsx';
 
 function dayKey(dateStr) {
   const d = new Date(dateStr);
@@ -38,16 +39,16 @@ function computeStreaks(days) {
   return { current, longest };
 }
 
-function monthLabel(y, m) {
-  return new Date(y, m, 1).toLocaleDateString(undefined, { month: 'short' });
+function monthLabel(y, m, locale) {
+  return new Date(y, m, 1).toLocaleDateString(locale, { month: 'short' });
 }
 
-function last6Months(items) {
+function last6Months(items, locale) {
   const now = new Date();
   const buckets = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    buckets.push({ y: d.getFullYear(), m: d.getMonth(), label: monthLabel(d.getFullYear(), d.getMonth()), count: 0 });
+    buckets.push({ y: d.getFullYear(), m: d.getMonth(), label: monthLabel(d.getFullYear(), d.getMonth(), locale), count: 0 });
   }
   for (const item of items) {
     const d = new Date(item.created_at);
@@ -58,6 +59,7 @@ function last6Months(items) {
 }
 
 export default function StatsView({ items, dark, accent, onClose }) {
+  const { t, language } = useI18n();
   const stats = useMemo(() => {
     const counts = Object.fromEntries(CATEGORY_ORDER.map((c) => [c, 0]));
     const days = new Set();
@@ -69,20 +71,20 @@ export default function StatsView({ items, dark, accent, onClose }) {
       if (!firstDate || d < firstDate) firstDate = d;
     }
     const { current, longest } = computeStreaks(days);
-    const months = last6Months(items);
+    const months = last6Months(items, language);
     const maxMonth = Math.max(1, ...months.map((b) => b.count));
     return { counts, current, longest, firstDate, activeDays: days.size, months, maxMonth };
-  }, [items]);
+  }, [items, language]);
 
   const memberSince = stats.firstDate
-    ? stats.firstDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+    ? stats.firstDate.toLocaleDateString(language, { month: 'long', year: 'numeric' })
     : '—';
 
   return (
     <main className="stats-main">
       <button type="button" className="back-btn" onClick={onClose}>
         <span aria-hidden="true">←</span>
-        <span>Back to the shelf</span>
+        <span>{t('stats.back')}</span>
       </button>
 
       <div className="stats-hero">
@@ -92,12 +94,12 @@ export default function StatsView({ items, dark, accent, onClose }) {
           </span>
           <div>
             <p className="stats-streak-num">{stats.current}</p>
-            <p className="stats-streak-label">day streak</p>
+            <p className="stats-streak-label">{t('stats.dayStreak')}</p>
           </div>
         </div>
         <div className="stats-hero-meta">
-          <p className="section-label">Account stats</p>
-          <p className="stats-since">Member since {memberSince}</p>
+          <p className="section-label">{t('stats.accountStats')}</p>
+          <p className="stats-since">{t('stats.memberSince', { date: memberSince })}</p>
         </div>
       </div>
 
@@ -105,7 +107,7 @@ export default function StatsView({ items, dark, accent, onClose }) {
         {CATEGORY_ORDER.map((key) => (
           <div className="stats-tile" key={key}>
             <p className="stats-tile-num">{stats.counts[key]}</p>
-            <p className="stats-tile-label">{CATEGORY_META[key].label}</p>
+            <p className="stats-tile-label">{t(`category.${key}`)}</p>
           </div>
         ))}
       </div>
@@ -113,20 +115,20 @@ export default function StatsView({ items, dark, accent, onClose }) {
       <div className="stats-grid stats-grid-secondary">
         <div className="stats-tile">
           <p className="stats-tile-num">{stats.longest}</p>
-          <p className="stats-tile-label">Longest streak</p>
+          <p className="stats-tile-label">{t('stats.longestStreak')}</p>
         </div>
         <div className="stats-tile">
           <p className="stats-tile-num">{stats.activeDays}</p>
-          <p className="stats-tile-label">Active days</p>
+          <p className="stats-tile-label">{t('stats.activeDays')}</p>
         </div>
         <div className="stats-tile">
           <p className="stats-tile-num">{items.length}</p>
-          <p className="stats-tile-label">Things kept</p>
+          <p className="stats-tile-label">{t('stats.thingsKept')}</p>
         </div>
       </div>
 
       <div className="stats-chart-block">
-        <p className="section-label">Last 6 months</p>
+        <p className="section-label">{t('stats.last6Months')}</p>
         <div className="stats-chart">
           {stats.months.map((b) => (
             <div className="stats-bar-col" key={`${b.y}-${b.m}`}>
@@ -134,7 +136,7 @@ export default function StatsView({ items, dark, accent, onClose }) {
                 <div
                   className="stats-bar-fill"
                   style={{ height: `${(b.count / stats.maxMonth) * 100}%`, background: accent }}
-                  title={`${b.count} added`}
+                  title={t('stats.added', { count: b.count })}
                 />
               </div>
               <p className="stats-bar-label">{b.label}</p>

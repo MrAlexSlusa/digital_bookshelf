@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { api } from './api.js';
 import AuthGate from './shelf/AuthGate.jsx';
 import ShelfApp from './shelf/ShelfApp.jsx';
+import { useI18n } from './i18n/I18nContext.jsx';
 
 export default function App() {
+  const { t } = useI18n();
   const [user, setUser] = useState(undefined); // undefined = checking, null = signed out, object = signed in
 
   useEffect(() => {
@@ -21,7 +23,7 @@ export default function App() {
   if (user === undefined) {
     return (
       <div className="auth-screen">
-        <p className="auth-sub">Loading…</p>
+        <p className="auth-sub">{t('common.loading')}</p>
       </div>
     );
   }

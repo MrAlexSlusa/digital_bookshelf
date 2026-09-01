@@ -1,22 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
-import { CATEGORY_META, CATEGORY_ORDER, subLabelFor } from './constants.js';
+import { CATEGORY_ORDER, subLabelFor } from './constants.js';
 import { accentColors } from './styles.js';
 import { extractDominantHue, fetchBookCover, fetchMoviePoster, fetchWikipediaImage } from './coverLookup.js';
+import { useI18n } from '../i18n/I18nContext.jsx';
 
 // Books/movies search by title; articles/quotes have no cover art of their
 // own, so they search by who/what they're attributed to (the sub field).
-const COVER_META = {
-  books: { label: 'Cover image', source: 'Open Library', noun: 'cover', queryField: 'title' },
-  movies: { label: 'Poster image', source: 'Wikipedia', noun: 'poster', queryField: 'title' },
-  articles: { label: 'Publication image', source: 'Wikipedia', noun: 'image', queryField: 'sub' },
-  quotes: { label: 'Portrait', source: 'Wikipedia', noun: 'portrait', queryField: 'sub' },
-};
+const COVER_SOURCE = { books: 'Open Library', movies: 'Wikipedia', articles: 'Wikipedia', quotes: 'Wikipedia' };
+const COVER_QUERY_FIELD = { books: 'title', movies: 'title', articles: 'sub', quotes: 'sub' };
 
 function factsToRows(facts) {
   return (facts || []).map(([k, v]) => ({ k, v }));
 }
 
 export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit, onCancel, onSubmittingChange }) {
+  const { t } = useI18n();
   const isEdit = Boolean(initial);
   const [category, setCategory] = useState(initial?.category || defaultCategory || 'books');
   const [title, setTitle] = useState(initial?.title || '');
@@ -40,7 +38,14 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
 
   const { accent } = accentColors(hue, dark);
 
-  const coverMeta = COVER_META[category];
+  const coverMeta = COVER_SOURCE[category]
+    ? {
+        label: t(`itemForm.coverLabel.${category}`),
+        source: COVER_SOURCE[category],
+        noun: t(`itemForm.coverNoun.${category}`),
+        queryField: COVER_QUERY_FIELD[category],
+      }
+    : null;
 
   async function matchColorToCover(url, signal) {
     setMatchingColor(true);
@@ -100,7 +105,7 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
   async function handleSubmit(e) {
     e.preventDefault();
     if (!title.trim()) {
-      setError('Title is required');
+      setError(t('itemForm.titleRequired'));
       return;
     }
     setError(null);
@@ -133,35 +138,35 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
   return (
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
       <div className="modal-panel">
-        <h2 className="modal-title">{isEdit ? 'Edit item' : 'Add something new'}</h2>
+        <h2 className="modal-title">{isEdit ? t('itemForm.editTitle') : t('itemForm.addTitle')}</h2>
 
         {error && <p className="form-error">{error}</p>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
             <div className="form-field">
-              <label htmlFor="item-category">Category</label>
+              <label htmlFor="item-category">{t('itemForm.category')}</label>
               <select id="item-category" value={category} onChange={(e) => setCategory(e.target.value)}>
                 {CATEGORY_ORDER.map((key) => (
                   <option key={key} value={key}>
-                    {CATEGORY_META[key].label}
+                    {t(`category.${key}`)}
                   </option>
                 ))}
               </select>
             </div>
             <div className="form-field">
-              <label htmlFor="item-year">Year</label>
+              <label htmlFor="item-year">{t('itemForm.year')}</label>
               <input id="item-year" type="text" value={year} onChange={(e) => setYear(e.target.value)} placeholder="2024" />
             </div>
           </div>
 
           <div className="form-field">
-            <label htmlFor="item-title">{category === 'quotes' ? 'The quote' : 'Title'}</label>
+            <label htmlFor="item-title">{category === 'quotes' ? t('itemForm.theQuote') : t('itemForm.title')}</label>
             <input id="item-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
           </div>
 
           <div className="form-field">
-            <label htmlFor="item-sub">{subLabelFor(category)}</label>
+            <label htmlFor="item-sub">{subLabelFor(category, t)}</label>
             <input id="item-sub" type="text" value={sub} onChange={(e) => setSub(e.target.value)} />
           </div>
 
@@ -181,7 +186,9 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
                       setCoverStatus('idle');
                     }}
                     onBlur={handleCoverUrlBlur}
-                    placeholder={`Auto-fills from the ${coverMeta.queryField === 'title' ? 'title' : subLabelFor(category).toLowerCase()}`}
+                    placeholder={t('itemForm.autoFillsFrom', {
+                      field: coverMeta.queryField === 'title' ? t('itemForm.coverField.title') : subLabelFor(category, t).toLowerCase(),
+                    })}
                   />
                   {coverTouchedRef.current && (
                     <button
@@ -193,19 +200,17 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
                         setCoverStatus('idle');
                       }}
                     >
-                      Auto-detect
+                      {t('itemForm.autoDetect')}
                     </button>
                   )}
                   {!coverTouchedRef.current && coverStatus === 'loading' && (
-                    <span className="cover-lookup-status">Looking up {coverMeta.noun}…</span>
+                    <span className="cover-lookup-status">{t('itemForm.lookingUp', { noun: coverMeta.noun })}</span>
                   )}
                   {!coverTouchedRef.current && coverStatus === 'found' && (
-                    <span className="cover-lookup-status">Matched from {coverMeta.source}</span>
+                    <span className="cover-lookup-status">{t('itemForm.matchedFrom', { source: coverMeta.source })}</span>
                   )}
                   {!coverTouchedRef.current && coverStatus === 'none' && (
-                    <span className="cover-lookup-status">
-                      No {coverMeta.noun} found — using the plain design instead
-                    </span>
+                    <span className="cover-lookup-status">{t('itemForm.noneFound', { noun: coverMeta.noun })}</span>
                   )}
                 </div>
               </div>
@@ -214,7 +219,7 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
 
           <div className="form-grid">
             <div className="form-field">
-              <label>Rating</label>
+              <label>{t('itemForm.rating')}</label>
               <div className="star-picker">
                 {[1, 2, 3, 4, 5].map((n) => (
                   <button
@@ -222,7 +227,7 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
                     type="button"
                     className={`star-btn${rating >= n ? ' filled' : ''}`}
                     onClick={() => setRating((r) => (r === n ? null : n))}
-                    aria-label={`${n} star${n === 1 ? '' : 's'}`}
+                    aria-label={t(n === 1 ? 'itemForm.starLabel' : 'itemForm.starsLabel', { n })}
                   >
                     {rating >= n ? '★' : '☆'}
                   </button>
@@ -231,7 +236,8 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
             </div>
             <div className="form-field">
               <label htmlFor="item-hue">
-                Colour{coverUrl && !hueTouchedRef.current ? (matchingColor ? ' (matching cover…)' : ' (matched to cover)') : ''}
+                {t('itemForm.colour')}
+                {coverUrl && !hueTouchedRef.current ? (matchingColor ? t('itemForm.matchingCover') : t('itemForm.matchedToCover')) : ''}
               </label>
               <div className="hue-row">
                 <input
@@ -251,52 +257,64 @@ export default function ItemFormModal({ initial, defaultCategory, dark, onSubmit
           </div>
 
           <div className="form-field">
-            <label htmlFor="item-verdict">Verdict</label>
-            <input id="item-verdict" type="text" value={verdict} onChange={(e) => setVerdict(e.target.value)} placeholder="Read it twice" />
+            <label htmlFor="item-verdict">{t('itemForm.verdict')}</label>
+            <input
+              id="item-verdict"
+              type="text"
+              value={verdict}
+              onChange={(e) => setVerdict(e.target.value)}
+              placeholder={t('itemForm.verdictPlaceholder')}
+            />
           </div>
 
           <div className="form-field">
-            <label htmlFor="item-impression">Impressions</label>
+            <label htmlFor="item-impression">{t('itemForm.impressions')}</label>
             <textarea id="item-impression" value={impression} onChange={(e) => setImpression(e.target.value)} />
           </div>
 
           <div className="form-field">
-            <label htmlFor="item-tags">Tags (comma separated)</label>
-            <input id="item-tags" type="text" value={tagsText} onChange={(e) => setTagsText(e.target.value)} placeholder="Fiction, Re-read" />
+            <label htmlFor="item-tags">{t('itemForm.tags')}</label>
+            <input
+              id="item-tags"
+              type="text"
+              value={tagsText}
+              onChange={(e) => setTagsText(e.target.value)}
+              placeholder={t('itemForm.tagsPlaceholder')}
+            />
           </div>
 
           <div className="form-field">
-            <label>Details</label>
+            <label>{t('itemForm.details')}</label>
             {factRows.map((row, idx) => (
               <div className="repeat-row" key={idx}>
                 <input
                   type="text"
-                  placeholder="Label, e.g. Pages"
+                  placeholder={t('itemForm.labelPlaceholder')}
                   value={row.k}
                   onChange={(e) => updateFactRow(idx, 'k', e.target.value)}
                 />
                 <input
                   type="text"
-                  placeholder="Value, e.g. 304"
+                  placeholder={t('itemForm.valuePlaceholder')}
                   value={row.v}
                   onChange={(e) => updateFactRow(idx, 'v', e.target.value)}
                 />
-                <button type="button" className="icon-remove" onClick={() => removeFactRow(idx)} aria-label="Remove">
+                <button type="button" className="icon-remove" onClick={() => removeFactRow(idx)} aria-label={t('common.remove')}>
                   ×
                 </button>
               </div>
             ))}
             <button type="button" className="link-btn" onClick={addFactRow}>
-              + Add detail
+              {t('itemForm.addDetail')}
             </button>
           </div>
 
           <div className="modal-actions">
             <button type="button" className="btn-ghost" onClick={onCancel} disabled={submitting}>
-              Cancel
+              {t('common.cancel')}
             </button>
             <button type="submit" className="btn-pill" disabled={submitting}>
-              {submitting ? 'Saving…' : isEdit ? 'Save changes' : 'Add it'}
+              {submitting ? t('account.saving') : isEdit ? t('itemForm.saveChanges') : t('itemForm.addIt')}
             </button>
           </div>
         </form>
