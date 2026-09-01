@@ -8,7 +8,7 @@ itemsRouter.use(requireAuth);
 const CATEGORIES = ['books', 'movies', 'articles', 'quotes'];
 
 const SELECT_COLUMNS =
-  'id, user_id, category, title, sub, year, hue, rating, verdict, impression, notes, keeps, facts, tags, cover_url AS "coverUrl", created_at';
+  'id, user_id, category, title, sub, year, hue, rating, verdict, impression, notes, keeps, facts, tags, cover_url AS "coverUrl", franchise, watched, created_at';
 
 async function findItem(id, userId) {
   const { rows } = await pool.query(`SELECT ${SELECT_COLUMNS} FROM items WHERE id = $1 AND user_id = $2`, [
@@ -41,8 +41,8 @@ itemsRouter.post('/', async (req, res, next) => {
     }
     const hue = Number.isFinite(body.hue) ? ((body.hue % 360) + 360) % 360 : Math.floor(Math.random() * 360);
     const { rows } = await pool.query(
-      `INSERT INTO items (user_id, category, title, sub, year, hue, rating, verdict, impression, notes, keeps, facts, tags, cover_url)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+      `INSERT INTO items (user_id, category, title, sub, year, hue, rating, verdict, impression, notes, keeps, facts, tags, cover_url, franchise, watched)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
        RETURNING ${SELECT_COLUMNS}`,
       [
         req.userId,
@@ -59,6 +59,8 @@ itemsRouter.post('/', async (req, res, next) => {
         JSON.stringify(body.facts ?? []),
         JSON.stringify(body.tags ?? []),
         body.coverUrl || null,
+        body.franchise || null,
+        body.watched ?? true,
       ]
     );
     res.status(201).json(rows[0]);
@@ -88,8 +90,8 @@ itemsRouter.post('/bulk', async (req, res, next) => {
     for (const item of items) {
       const hue = Math.floor(Math.random() * 360);
       const { rows } = await client.query(
-        `INSERT INTO items (user_id, category, title, sub, year, hue, tags)
-         VALUES ($1,$2,$3,$4,$5,$6,$7)
+        `INSERT INTO items (user_id, category, title, sub, year, hue, tags, franchise, watched)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
          RETURNING ${SELECT_COLUMNS}`,
         [
           req.userId,
@@ -99,6 +101,8 @@ itemsRouter.post('/bulk', async (req, res, next) => {
           item.year || null,
           hue,
           JSON.stringify(item.tags ?? []),
+          item.franchise || null,
+          item.watched ?? true,
         ]
       );
       created.push(rows[0]);
@@ -132,8 +136,8 @@ itemsRouter.put('/:id', async (req, res, next) => {
 
     const { rows } = await pool.query(
       `UPDATE items SET category=$1, title=$2, sub=$3, year=$4, hue=$5, rating=$6, verdict=$7,
-       impression=$8, notes=$9, keeps=$10, facts=$11, tags=$12, cover_url=$13
-       WHERE id=$14 AND user_id=$15
+       impression=$8, notes=$9, keeps=$10, facts=$11, tags=$12, cover_url=$13, franchise=$14, watched=$15
+       WHERE id=$16 AND user_id=$17
        RETURNING ${SELECT_COLUMNS}`,
       [
         category,
@@ -149,6 +153,8 @@ itemsRouter.put('/:id', async (req, res, next) => {
         JSON.stringify(body.facts !== undefined ? body.facts : existing.facts),
         JSON.stringify(body.tags !== undefined ? body.tags : existing.tags),
         body.coverUrl !== undefined ? body.coverUrl || null : existing.coverUrl,
+        body.franchise !== undefined ? body.franchise || null : existing.franchise,
+        body.watched !== undefined ? body.watched : existing.watched,
         req.params.id,
         req.userId,
       ]
