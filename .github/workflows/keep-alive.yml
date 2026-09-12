@@ -1,16 +1,19 @@
-# Keeps the Render API awake around the clock.
+# Pings the Render API on a schedule.
 #
-# Render's free web services spin down after ~15 minutes with no traffic, so
-# the first visitor after an idle spell waits out a cold start. This pings the
-# health endpoint every 10 minutes, which keeps the instance warm 24/7 and
-# emails you (via a failed run) if the API ever stops answering.
-name: Keep API awake
+# This is primarily an uptime monitor: a failed run means /api/health stopped
+# answering, and GitHub emails about it. It is NOT a reliable keep-warm --
+# GitHub treats cron as best effort and drops most ticks on a high-frequency
+# schedule, so in practice this fires every few hours, well outside Render's
+# ~15 minute idle window. See the README for options that actually keep the
+# instance warm.
+name: Ping API health
 
 on:
   schedule:
-    # Every 10 minutes. GitHub queues cron runs on a best-effort basis, so
-    # treat the interval as "roughly every 10 minutes", not a hard guarantee.
-    - cron: '*/10 * * * *'
+    # Requests every 15 minutes. GitHub honours only a fraction of the ticks
+    # on a schedule this frequent -- observed cadence is every 2-4 hours --
+    # so treat this as an upper bound, not an interval.
+    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 permissions:
