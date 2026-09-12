@@ -13,6 +13,7 @@ import { friendsRouter } from './routes/friends.js';
 import { messagesRouter } from './routes/messages.js';
 import { initDb, pool } from './db.js';
 import { verifyToken } from './tokenAuth.js';
+import { startSelfPing } from './selfPing.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3001;
@@ -101,8 +102,11 @@ async function main() {
     console.log(`Bookshelf server listening on http://localhost:${PORT}`);
   });
 
+  const selfPingTimer = startSelfPing();
+
   const shutdown = (signal) => {
     console.log(`${signal} received, shutting down gracefully...`);
+    if (selfPingTimer) clearInterval(selfPingTimer);
     server.close(async () => {
       await pool.end();
       process.exit(0);
