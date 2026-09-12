@@ -67,9 +67,10 @@ The repo includes [`render.yaml`](render.yaml), so you can use Render's
    it ever crashes. `render.yaml` wires up `/api/health` as the health check.
 
    **Free-tier note**: Render's free web services spin down after ~15
-   minutes idle and take a few seconds to wake back up on the next request —
+   minutes idle and take ~10-15 seconds to wake back up on the next request —
    that's "always available", not "always warm". See
-   [Keeping the API awake](#keeping-the-api-awake-247) below.
+   [Uptime monitoring and cold starts](#uptime-monitoring-and-cold-starts)
+   below.
 
 ### 3. Frontend (GitHub Pages)
 
@@ -86,31 +87,38 @@ domains, the server issues cross-site session cookies (`SameSite=None;
 Secure`) — this only works over HTTPS, which both platforms provide by
 default, so no extra setup is needed there.
 
-## Keeping the API awake 24/7
+## Uptime monitoring and cold starts
 
 [`.github/workflows/keep-alive.yml`](.github/workflows/keep-alive.yml) pings
-`GET /api/health` every 10 minutes from GitHub Actions, which keeps the free
-Render instance from ever going idle long enough to spin down. It reuses the
-same `API_URL` repository variable as the Pages deploy, so once that's set
-there's nothing else to configure — the workflow starts running on its
-schedule as soon as it's on `main`.
+`GET /api/health` from GitHub Actions. It reuses the same `API_URL` repository
+variable as the Pages deploy, so there's nothing extra to configure. The ping
+allows up to five attempts 30 seconds apart, so a cold start is waited out
+rather than reported as an outage; if the API is genuinely down the run fails
+and GitHub emails you. You can also run it by hand from the **Actions** tab.
 
-The ping allows up to five attempts 30 seconds apart, so a genuine cold start
-is waited out rather than reported as an outage. If the API really is down,
-the run fails and GitHub emails you — it doubles as a free uptime monitor.
-You can also trigger it by hand from the **Actions** tab (**Run workflow**).
+**What it is good for: monitoring. What it does not do: keep the instance
+warm.** The schedule asks for every 15 minutes, but GitHub treats cron as
+best-effort and drops most ticks on a high-frequency schedule. Measured over
+the first 19 hours, it fired 5 times — gaps of 2 to 4.5 hours — and the
+`uptime` value in every response was under 12 seconds, meaning the process had
+just cold-booted on each ping. Render had spun the instance down long before.
 
-Two things worth knowing:
+To actually avoid cold starts, pick one of:
 
-- **GitHub pauses cron workflows in repos with no commits for 60 days.** If
-  the shelf goes quiet for a couple of months, re-enable the workflow from the
-  Actions tab (GitHub emails a warning first).
-- **Render's free tier includes 750 instance-hours per month**, and a month is
-  ~730 hours, so one always-on free service fits — but a second one won't.
+- **An external pinger** — [UptimeRobot](https://uptimerobot.com)'s free tier
+  or [cron-job.org](https://cron-job.org) genuinely fire every ~5 minutes,
+  inside Render's ~15 minute idle window. Point an HTTP monitor at
+  `<your-render-url>/api/health`.
+- **A paid Render instance** — upgrade the instance type in `render.yaml` or
+  the dashboard. No pinging, no cold starts, no free-tier hour ceiling, and
+  crashes are restarted properly. The only real guarantee.
 
-For a guaranteed always-on process with no pinging, upgrade the service to a
-paid instance type in Render (one line in `render.yaml` / the dashboard) and
-delete this workflow.
+Two further caveats:
+
+- **GitHub pauses cron workflows in repos with no commits for 60 days.**
+  Re-enable from the Actions tab if the shelf goes quiet (GitHub warns first).
+- **Render's free tier includes 750 instance-hours per month** against a ~730
+  hour month, so one always-on free service fits — a second one won't.
 
 ## Accounts
 
