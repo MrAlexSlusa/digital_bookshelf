@@ -103,12 +103,28 @@ the first 19 hours, it fired 5 times — gaps of 2 to 4.5 hours — and the
 `uptime` value in every response was under 12 seconds, meaning the process had
 just cold-booted on each ping. Render had spun the instance down long before.
 
-To actually avoid cold starts, pick one of:
+### Self-ping
+
+The server keeps itself awake: [`server/src/selfPing.js`](server/src/selfPing.js)
+requests its own public URL every 10 minutes, which arrives as inbound traffic
+and resets Render's idle timer. On Render this needs no configuration —
+`RENDER_EXTERNAL_URL` is injected automatically, and the ping is active
+whenever `NODE_ENV=production`. `SELF_PING`, `SELF_PING_URL` and
+`SELF_PING_INTERVAL_MS` (default 10 minutes, clamped to 1–14) override it; see
+[`server/.env.example`](server/.env.example).
+
+**Its limit: it holds a running server up, but cannot wake a sleeping one** —
+if the process isn't running, nothing is there to send the request. Something
+external has to make the first request after a deploy, a crash, or any gap
+long enough to have let it sleep. The workflow above is one such waker, a
+visitor is another.
+
+For a guarantee that doesn't depend on that, either:
 
 - **An external pinger** — [UptimeRobot](https://uptimerobot.com)'s free tier
   or [cron-job.org](https://cron-job.org) genuinely fire every ~5 minutes,
   inside Render's ~15 minute idle window. Point an HTTP monitor at
-  `<your-render-url>/api/health`.
+  `<your-render-url>/api/health`. This *can* wake a sleeping instance.
 - **A paid Render instance** — upgrade the instance type in `render.yaml` or
   the dashboard. No pinging, no cold starts, no free-tier hour ceiling, and
   crashes are restarted properly. The only real guarantee.
